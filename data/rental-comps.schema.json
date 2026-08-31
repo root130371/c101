@@ -1,0 +1,5 @@
+{
+  "source_policy": "Manual admin-entered Narlidere rent data only.",
+  "storage": "Browser localStorage in this static prototype.",
+  "fields": ["title", "rent", "size", "age", "neighborhood", "address", "lat", "lng", "source", "proof", "district", "createdAt", "updatedAt"]
+}
