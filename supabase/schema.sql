@@ -122,6 +122,9 @@ create policy "evidence own all" on public.evidence_items
 create policy "extraction own read" on public.extraction_jobs
   for select using (user_id = auth.uid());
 
+create policy "extraction own insert" on public.extraction_jobs
+  for insert with check (user_id = auth.uid());
+
 create policy "assistant own all" on public.assistant_messages
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 

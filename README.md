@@ -28,6 +28,20 @@ supabase/schema.sql
 
 That creates the first production tables, Row Level Security policies, and a private `evidence` storage bucket.
 
+If `schema.sql` was already applied before the extraction insert policy was added, run:
+
+```text
+supabase/upgrade_no_api_key.sql
+```
+
+After signing up through the app, make your own account a real listing admin by running this in Supabase SQL Editor:
+
+```sql
+update public.profiles
+set role = 'admin'
+where email = 'your-email@example.com';
+```
+
 Evidence status rules:
 
 - `Mevcut değil`: no file exists.
@@ -35,11 +49,21 @@ Evidence status rules:
 - `Mevcut`: an image file exists and analysis passed.
 - `Kontrol gerekli`: PDF/low-quality image/failed extraction needs review.
 
-The current static app keeps evidence locally until real Supabase Auth is added. Once users can log in, evidence uploads should go into Supabase Storage under the user's own folder.
+The current static app supports Supabase Auth. Logged-in users upload evidence files into the private `evidence` bucket under their own user ID. A matching `evidence_items` row is created, and an `extraction_jobs` row is queued for the future AI processor.
+
+## AI Extraction
+
+The Edge Function skeleton lives here:
+
+```text
+supabase/functions/analyze-evidence/index.ts
+```
+
+It intentionally does not call OpenAI yet. It returns a clear configuration error until `OPENAI_API_KEY` is added as a Supabase Edge Function secret.
 
 ## Data Note
 
-The nearby-rent map starts empty. Use the admin panel to enter İzmir / Narlıdere comparison rents manually. A production version should avoid scraping Sahibinden without permission. Safer options are licensed data feeds, partner integrations, user-submitted proof, and archived listing links/screenshots.
+The nearby-rent map starts empty. It reads public `rent_listings` rows from Supabase when available. A real Supabase admin can add, edit, and delete listings. The demo admin login still works as a local fallback.
 
 Demo admin login:
 

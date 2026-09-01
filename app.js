@@ -318,6 +318,7 @@ let editingIndex = null;
 let selectedEvidenceAnalysis = null;
 let supabaseClient = null;
 let currentUser = null;
+let currentProfile = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -347,15 +348,33 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function canEditListings() {
+  return adminLoggedIn || currentProfile?.role === "admin";
+}
+
 function initSupabase() {
   if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session?.user || null;
+      if (!currentUser) currentProfile = null;
+      await loadProfile();
       renderAuthState();
       loadRemoteEvidence();
+      loadRemoteRentListings();
     });
   }
+}
+
+async function loadProfile() {
+  currentProfile = null;
+  if (!supabaseClient || !currentUser) return;
+  const { data } = await supabaseClient
+    .from("profiles")
+    .select("id,email,role")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+  currentProfile = data || null;
 }
 
 function readRentData() {
@@ -480,7 +499,18 @@ async function saveRemoteEvidence(item) {
 
   if (!error && data?.id) {
     item.remoteId = data.id;
+    await createExtractionJob(item);
   }
+}
+
+async function createExtractionJob(item) {
+  if (!supabaseClient || !currentUser || !item.remoteId) return;
+  await supabaseClient.from("extraction_jobs").insert({
+    evidence_id: item.remoteId,
+    user_id: currentUser.id,
+    status: "queued",
+    provider: "pending_openai"
+  });
 }
 
 async function loadRemoteEvidence() {
@@ -516,6 +546,73 @@ async function loadRemoteEvidence() {
   renderEvidence();
 }
 
+function mapRemoteListing(item) {
+  return {
+    remoteId: item.id,
+    title: item.title,
+    rent: Number(item.rent || 0),
+    size: Number(item.size || 0),
+    age: Number(item.building_age || 0),
+    neighborhood: item.neighborhood || "Narlıdere",
+    address: item.address || "",
+    lat: item.lat === null ? null : Number(item.lat),
+    lng: item.lng === null ? null : Number(item.lng),
+    source: item.source || "",
+    proof: item.proof || "",
+    updatedAt: item.updated_at || item.created_at
+  };
+}
+
+function listingPayload(item) {
+  return {
+    created_by: currentUser?.id || null,
+    title: item.title,
+    rent: item.rent,
+    size: item.size,
+    building_age: item.age,
+    city: "İzmir",
+    district: "Narlıdere",
+    neighborhood: item.neighborhood,
+    address: item.address,
+    lat: Number.isFinite(Number(item.lat)) ? Number(item.lat) : null,
+    lng: Number.isFinite(Number(item.lng)) ? Number(item.lng) : null,
+    source: item.source,
+    proof: item.proof,
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function loadRemoteRentListings() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from("rent_listings")
+    .select("id,title,rent,size,building_age,neighborhood,address,lat,lng,source,proof,created_at,updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error || !Array.isArray(data)) return;
+  writeJson(RENT_KEY, data.map(mapRemoteListing));
+  renderMarket();
+}
+
+async function saveRemoteRentListing(item) {
+  if (!supabaseClient || currentProfile?.role !== "admin") return item;
+  const payload = listingPayload(item);
+  const query = item.remoteId
+    ? supabaseClient.from("rent_listings").update(payload).eq("id", item.remoteId).select("id").single()
+    : supabaseClient.from("rent_listings").insert(payload).select("id").single();
+  const { data, error } = await query;
+  if (error) {
+    $("#adminStatus").textContent = error.message;
+    return item;
+  }
+  return { ...item, remoteId: data.id };
+}
+
+async function deleteRemoteRentListing(item) {
+  if (!supabaseClient || currentProfile?.role !== "admin" || !item?.remoteId) return;
+  await supabaseClient.from("rent_listings").delete().eq("id", item.remoteId);
+}
+
 function setAuthMessage(message) {
   $("#authMessage").textContent = message;
 }
@@ -527,6 +624,7 @@ function renderAuthState() {
   $("#authUserEmail").textContent = currentUser?.email || "";
   $("#accountStatus").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
   $("#accountStatusMini").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
+  renderAdminState();
 }
 
 async function signIn() {
@@ -702,7 +800,7 @@ function updateStatuses() {
   $("#contractStatus").textContent = tr(hasContract ? "available" : "unavailable");
   $("#evidenceStatus").textContent = tr(hasEvidence ? "available" : "unavailable");
   $("#marketDataStatus").textContent = tr(hasMarket ? "available" : "unavailable");
-  $("#adminStatus").textContent = tr(adminLoggedIn ? "adminUnlocked" : "adminLocked");
+  $("#adminStatus").textContent = tr(canEditListings() ? "adminUnlocked" : "adminLocked");
   $("#accountStatusMini").textContent = tr(currentUser ? "accountLoggedIn" : "accountLoggedOut");
   renderChecklist();
 }
@@ -718,7 +816,7 @@ function initMap() {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(rentMap);
   rentMarkers = L.layerGroup().addTo(rentMap);
   rentMap.on("click", (event) => {
-    if (adminLoggedIn) setAdminCoordinates(event.latlng.lat, event.latlng.lng, true);
+    if (canEditListings()) setAdminCoordinates(event.latlng.lat, event.latlng.lng, true);
   });
 }
 
@@ -739,7 +837,7 @@ function renderMarket() {
   const median = sorted[Math.floor(sorted.length / 2)];
   $("#medianRent").textContent = money(median);
   $("#rentVerdict").textContent = tr(requested >= median ? "aboveMedian" : "belowMedian", money(Math.abs(requested - median)));
-  $("#listingList").innerHTML = data.map((item, index) => `<article class="listing"><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.neighborhood || "Narlıdere")} · ${money(item.rent)} · ${escapeHtml(item.size)} m2</small><p>${escapeHtml(item.address || item.source || "")}</p></div>${adminLoggedIn ? `<div class="listing-actions"><button type="button" data-edit="${index}">${tr("editListing")}</button><button type="button" data-delete="${index}">${tr("deleteListing")}</button></div>` : ""}</article>`).join("");
+  $("#listingList").innerHTML = data.map((item, index) => `<article class="listing"><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.neighborhood || "Narlıdere")} · ${money(item.rent)} · ${escapeHtml(item.size)} m2</small><p>${escapeHtml(item.address || item.source || "")}</p></div>${canEditListings() ? `<div class="listing-actions"><button type="button" data-edit="${index}">${tr("editListing")}</button><button type="button" data-delete="${index}">${tr("deleteListing")}</button></div>` : ""}</article>`).join("");
 
   if (rentMarkers) {
     data.forEach((item) => {
@@ -775,13 +873,13 @@ function resetAdminForm() {
 }
 
 function renderAdminState() {
-  $("#adminLogin").classList.toggle("hidden", adminLoggedIn);
-  $("#adminForm").classList.toggle("hidden", !adminLoggedIn);
+  $("#adminLogin").classList.toggle("hidden", canEditListings());
+  $("#adminForm").classList.toggle("hidden", !canEditListings());
   updateStatuses();
   renderMarket();
 }
 
-function saveListing(event) {
+async function saveListing(event) {
   event.preventDefault();
   const item = {
     title: $("#adminTitleInput").value.trim() || "Narlıdere kira kanıtı",
@@ -796,9 +894,13 @@ function saveListing(event) {
     proof: $("#adminProofInput").value.trim(),
     updatedAt: new Date().toISOString()
   };
+  if (editingIndex !== null) {
+    item.remoteId = readRentData()[editingIndex]?.remoteId;
+  }
+  const savedItem = await saveRemoteRentListing(item);
   const data = readRentData();
-  if (editingIndex === null) data.unshift(item);
-  else data[editingIndex] = item;
+  if (editingIndex === null) data.unshift(savedItem);
+  else data[editingIndex] = savedItem;
   writeJson(RENT_KEY, data);
   resetAdminForm();
   renderMarket();
@@ -949,13 +1051,14 @@ function bindEvents() {
     const center = rentMap?.getCenter();
     if (center) setAdminCoordinates(center.lat, center.lng, true);
   });
-  $("#listingList").addEventListener("click", (event) => {
+  $("#listingList").addEventListener("click", async (event) => {
     const edit = event.target.closest("[data-edit]");
     const del = event.target.closest("[data-delete]");
     if (edit) editListing(Number(edit.dataset.edit));
     if (del) {
       const data = readRentData();
-      data.splice(Number(del.dataset.delete), 1);
+      const [removed] = data.splice(Number(del.dataset.delete), 1);
+      await deleteRemoteRentListing(removed);
       writeJson(RENT_KEY, data);
       renderMarket();
     }
@@ -974,8 +1077,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (supabaseClient) {
     supabaseClient.auth.getSession().then(({ data }) => {
       currentUser = data?.session?.user || null;
+      return loadProfile();
+    }).then(() => {
       renderAuthState();
       loadRemoteEvidence();
+      loadRemoteRentListings();
     });
   } else {
     renderAuthState();
