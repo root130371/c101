@@ -325,6 +325,65 @@ h2 {
   color: var(--red);
 }
 
+.evidence-analysis {
+  margin: -4px 0 16px;
+}
+
+.analysis-card {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.analysis-card:not(:has(img)) {
+  grid-template-columns: 1fr;
+}
+
+.analysis-card.ok {
+  border-color: rgba(8, 116, 67, 0.35);
+  background: rgba(8, 116, 67, 0.06);
+}
+
+.analysis-card.warn {
+  border-color: rgba(183, 121, 31, 0.35);
+  background: rgba(183, 121, 31, 0.07);
+}
+
+.analysis-card p {
+  margin-bottom: 6px;
+  color: var(--muted);
+}
+
+.analysis-card small,
+.timeline-item small {
+  color: var(--muted);
+}
+
+.evidence-preview,
+.evidence-thumb {
+  width: 92px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.timeline-item .evidence-thumb {
+  grid-row: span 3;
+}
+
 .toolbar {
   display: flex;
   align-items: end;

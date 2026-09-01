@@ -108,7 +108,9 @@
             <div class="form-grid">
               <label><span data-i18n="evidenceType">Kanıt tipi</span><select id="evidenceType"><option value="bank">Banka dekontu</option><option value="message">Mesaj ekran görüntüsü</option><option value="photo">Ev fotoğrafı</option><option value="listing">İlan linki</option></select></label>
               <label><span data-i18n="evidenceNote">Not</span><input id="evidenceNote" placeholder="Örn. Eylül kirası dekontu" /></label>
+              <label class="full-row"><span data-i18n="evidenceFile">Dosya / fotoğraf</span><input id="evidenceFile" type="file" accept="image/*,.pdf" /></label>
             </div>
+            <div class="evidence-analysis" id="evidenceAnalysis"></div>
             <button id="addEvidence" class="secondary" data-i18n="addEvidence">Kanıt ekle</button>
           </div>
           <div class="timeline" id="evidenceTimeline"></div>
@@ -177,6 +179,7 @@
       </main>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./app.js"></script>
   </body>
 </html>

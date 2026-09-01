@@ -5,6 +5,9 @@ const LANG_KEY = "tenantShieldLang";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "c101admin";
 const NARLIDERE_CENTER = [38.3897, 27.0144];
+const SUPABASE_URL = "https://gxqcacrtntnfnakitdaf.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4cWNhY3J0bnRuZm5ha2l0ZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyOTE2MTksImV4cCI6MjEwMzg2NzYxOX0.gbpaPYNbldBKeLUwgJmauyPNGMmVRHTAAMBXPjD7bSw";
+const EVIDENCE_BUCKET = "evidence";
 
 const i18n = {
   tr: {
@@ -58,11 +61,25 @@ const i18n = {
     depositTitle: "Kanıt kasası",
     evidenceType: "Kanıt tipi",
     evidenceNote: "Not",
+    evidenceFile: "Dosya / fotoğraf",
     addEvidence: "Kanıt ekle",
     bank: "Banka dekontu",
     message: "Mesaj ekran görüntüsü",
     photo: "Ev fotoğrafı",
     listing: "İlan linki",
+    processing: "İşleniyor",
+    reviewRequired: "Kontrol gerekli",
+    fileRequired: "Kanıt eklemek için önce bir dosya veya fotoğraf yükleyin.",
+    fileWaiting: "Dosya seçildi, analiz hazırlanıyor.",
+    analysisReady: "Fotoğraf analiz edildi",
+    analysisPdf: "PDF yüklendi. Tam metin çıkarımı için AI backend gerekir.",
+    analysisImage: (width, height, size) => `Görüntü okunabildi: ${width}x${height}px, ${size}.`,
+    analysisLowRes: "Görüntü düşük çözünürlüklü; yazı veya detaylar okunamayabilir.",
+    analysisGood: "Görüntü kalitesi kanıt için uygun görünüyor.",
+    uploadLocal: "Dosya bu cihazda kaydedildi; Supabase bucket hazır olunca kalıcı yükleme yapılacak.",
+    uploadNeedsLogin: "Kalıcı Supabase yükleme için kullanıcı girişi gerekir; dosya bu cihazda geçici kanıt olarak tutuldu.",
+    uploadRemote: "Dosya Supabase Storage'a yüklendi.",
+    uploadFailedLocal: "Supabase yükleme başarısız oldu; dosya bu cihazda geçici kanıt olarak tutuldu.",
     marketEyebrow: "Yakın kiralar",
     marketTitle: "Mahalle kira kanıt haritası",
     manualData: "Admin verisi",
@@ -167,11 +184,25 @@ const i18n = {
     depositTitle: "Evidence vault",
     evidenceType: "Evidence type",
     evidenceNote: "Note",
+    evidenceFile: "File / photo",
     addEvidence: "Add evidence",
     bank: "Bank receipt",
     message: "Message screenshot",
     photo: "Home photo",
     listing: "Listing link",
+    processing: "Processing",
+    reviewRequired: "Review required",
+    fileRequired: "Upload a file or photo before adding evidence.",
+    fileWaiting: "File selected, preparing analysis.",
+    analysisReady: "Photo analyzed",
+    analysisPdf: "PDF uploaded. Full text extraction needs the AI backend.",
+    analysisImage: (width, height, size) => `Image readable: ${width}x${height}px, ${size}.`,
+    analysisLowRes: "Image resolution is low; text or details may be hard to read.",
+    analysisGood: "Image quality looks suitable for evidence.",
+    uploadLocal: "File was saved on this device; permanent upload will work once the Supabase bucket is ready.",
+    uploadNeedsLogin: "Permanent Supabase upload requires user login; the file was kept as temporary evidence on this device.",
+    uploadRemote: "File uploaded to Supabase Storage.",
+    uploadFailedLocal: "Supabase upload failed; file was kept as temporary evidence on this device.",
     marketEyebrow: "Nearby rents",
     marketTitle: "Neighborhood rent proof map",
     manualData: "Admin data",
@@ -240,6 +271,8 @@ let rentMarkers = null;
 let pendingMarker = null;
 let adminLoggedIn = sessionStorage.getItem("tenantShieldAdmin") === "1";
 let editingIndex = null;
+let selectedEvidenceAnalysis = null;
+let supabaseClient = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -269,6 +302,12 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function initSupabase() {
+  if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}
+
 function readRentData() {
   const items = readJson(RENT_KEY, []);
   return Array.isArray(items) ? items : [];
@@ -277,6 +316,82 @@ function readRentData() {
 function readEvidence() {
   const items = readJson(EVIDENCE_KEY, []);
   return Array.isArray(items) ? items : [];
+}
+
+function fileSizeLabel(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function statusLabel(status) {
+  if (status === "available") return tr("available");
+  if (status === "processing") return tr("processing");
+  if (status === "review_required") return tr("reviewRequired");
+  return tr("unavailable");
+}
+
+function readImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => resolve({ dataUrl: reader.result, width: image.naturalWidth, height: image.naturalHeight });
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeEvidenceFile(file) {
+  if (!file) return null;
+  const base = {
+    fileName: file.name,
+    fileType: file.type || "application/octet-stream",
+    fileSize: file.size,
+    fileSizeLabel: fileSizeLabel(file.size),
+    status: "review_required",
+    confidence: 0.4,
+    summary: tr("analysisPdf")
+  };
+
+  if (!file.type.startsWith("image/")) {
+    return base;
+  }
+
+  const image = await readImage(file);
+  const enoughResolution = image.width >= 1000 && image.height >= 700;
+  return {
+    ...base,
+    previewUrl: image.dataUrl,
+    width: image.width,
+    height: image.height,
+    status: enoughResolution ? "available" : "review_required",
+    confidence: enoughResolution ? 0.78 : 0.48,
+    summary: `${tr("analysisImage", image.width, image.height, base.fileSizeLabel)} ${tr(enoughResolution ? "analysisGood" : "analysisLowRes")}`
+  };
+}
+
+async function uploadEvidenceFile(file, analysis) {
+  if (!supabaseClient) return { storageStatus: "local", message: tr("uploadLocal") };
+  const { data: authData } = await supabaseClient.auth.getUser();
+  const user = authData?.user;
+  if (!user) {
+    return { storageStatus: "local", message: tr("uploadNeedsLogin") };
+  }
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${user.id}/${Date.now()}-${safeName}`;
+  const { error } = await supabaseClient.storage.from(EVIDENCE_BUCKET).upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false
+  });
+
+  if (error) {
+    return { storageStatus: "local", message: tr("uploadFailedLocal"), error: error.message };
+  }
+
+  return { storageStatus: "remote", storagePath: path, message: tr("uploadRemote"), analysis };
 }
 
 function calculateRent() {
@@ -296,7 +411,7 @@ function calculateRent() {
 }
 
 function updateScore() {
-  const evidenceCount = readEvidence().length;
+  const evidenceCount = readEvidence().filter((item) => item.status === "available").length;
   const listingCount = readRentData().length;
   const hasContract = Boolean(readJson(CONTRACT_KEY, null));
   const score = Math.min(100, 25 + evidenceCount * 10 + listingCount * 8 + (hasContract ? 25 : 0));
@@ -311,12 +426,18 @@ function renderEvidence() {
   const evidence = readEvidence();
   const types = ["bank", "message", "photo", "listing"];
   $("#evidenceGrid").innerHTML = types.map((type) => {
-    const exists = evidence.some((item) => item.type === type);
-    return `<article class="evidence-state ${exists ? "ok" : "missing"}"><span>${tr(type)}</span><strong>${tr(exists ? "available" : "unavailable")}</strong></article>`;
+    const item = evidence.find((entry) => entry.type === type && entry.fileName);
+    const status = item?.status || "missing";
+    return `<article class="evidence-state ${status === "available" ? "ok" : "missing"}"><span>${tr(type)}</span><strong>${statusLabel(status)}</strong></article>`;
   }).join("");
 
   $("#evidenceTimeline").innerHTML = evidence.length
-    ? evidence.map((item) => `<article class="timeline-item"><strong>${tr(item.type)}</strong><p>${escapeHtml(item.note || tr(item.type))}</p><small>${new Date(item.createdAt).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</small></article>`).join("")
+    ? evidence.map((item) => `<article class="timeline-item">
+        ${item.previewUrl ? `<img class="evidence-thumb" src="${item.previewUrl}" alt="">` : ""}
+        <strong>${tr(item.type)} · ${statusLabel(item.status)}</strong>
+        <p>${escapeHtml(item.summary || item.note || tr(item.type))}</p>
+        <small>${escapeHtml(item.fileName || "")} ${item.fileSizeLabel ? `· ${escapeHtml(item.fileSizeLabel)}` : ""} · ${new Date(item.createdAt).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</small>
+      </article>`).join("")
     : `<article class="timeline-item empty"><strong>${tr("unavailable")}</strong><p>${lang === "tr" ? "Henüz kanıt eklenmedi." : "No evidence has been added yet."}</p></article>`;
 
   updateStatuses();
@@ -329,25 +450,68 @@ function renderEvidenceOptions() {
     .join("");
 }
 
+function renderPendingEvidenceAnalysis(analysis) {
+  if (!analysis) {
+    $("#evidenceAnalysis").innerHTML = "";
+    return;
+  }
+  $("#evidenceAnalysis").innerHTML = `<article class="analysis-card ${analysis.status === "available" ? "ok" : "warn"}">
+    ${analysis.previewUrl ? `<img class="evidence-preview" src="${analysis.previewUrl}" alt="">` : ""}
+    <div>
+      <strong>${statusLabel(analysis.status)}</strong>
+      <p>${escapeHtml(analysis.summary)}</p>
+      <small>${escapeHtml(analysis.fileName)} · ${escapeHtml(analysis.fileSizeLabel)}</small>
+    </div>
+  </article>`;
+}
+
 function renderContract() {
   const contract = readJson(CONTRACT_KEY, null);
   $("#ocrStamp").textContent = contract?.name ? `${tr("uploaded")}: ${contract.name}` : tr("ocrWaiting");
   updateStatuses();
 }
 
-function addEvidence() {
+async function addEvidence() {
+  const file = $("#evidenceFile").files[0];
+  if (!file) {
+    $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("unavailable")}</strong><p>${tr("fileRequired")}</p></article>`;
+    return;
+  }
+
+  $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("processing")}</strong><p>${tr("fileWaiting")}</p></article>`;
+  const analysis = selectedEvidenceAnalysis || await analyzeEvidenceFile(file);
+  const upload = await uploadEvidenceFile(file, analysis);
   const items = readEvidence();
   const type = $("#evidenceType").value;
   const note = $("#evidenceNote").value.trim();
-  items.unshift({ type, note, createdAt: new Date().toISOString() });
+  items.unshift({
+    type,
+    note,
+    status: analysis.status,
+    confidence: analysis.confidence,
+    summary: `${analysis.summary} ${upload.message}`,
+    fileName: analysis.fileName,
+    fileType: analysis.fileType,
+    fileSize: analysis.fileSize,
+    fileSizeLabel: analysis.fileSizeLabel,
+    width: analysis.width,
+    height: analysis.height,
+    previewUrl: analysis.previewUrl,
+    storageStatus: upload.storageStatus,
+    storagePath: upload.storagePath,
+    createdAt: new Date().toISOString()
+  });
   writeJson(EVIDENCE_KEY, items);
   $("#evidenceNote").value = "";
+  $("#evidenceFile").value = "";
+  selectedEvidenceAnalysis = null;
+  renderPendingEvidenceAnalysis(null);
   renderEvidence();
 }
 
 function renderChecklist() {
   const hasContract = Boolean(readJson(CONTRACT_KEY, null));
-  const hasPayment = readEvidence().some((item) => item.type === "bank");
+  const hasPayment = readEvidence().some((item) => item.type === "bank" && item.status === "available");
   const hasMarket = readRentData().length > 0;
   const items = [
     [tr("contractSummary"), hasContract],
@@ -360,7 +524,7 @@ function renderChecklist() {
 
 function updateStatuses() {
   const hasContract = Boolean(readJson(CONTRACT_KEY, null));
-  const hasEvidence = readEvidence().length > 0;
+  const hasEvidence = readEvidence().some((item) => item.status === "available");
   const hasMarket = readRentData().length > 0;
   $("#contractStatus").textContent = tr(hasContract ? "available" : "unavailable");
   $("#evidenceStatus").textContent = tr(hasEvidence ? "available" : "unavailable");
@@ -551,6 +715,30 @@ function bindEvents() {
     updateScore();
   });
   $("#addEvidence").addEventListener("click", addEvidence);
+  $("#evidenceFile").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    selectedEvidenceAnalysis = null;
+    if (!file) {
+      renderPendingEvidenceAnalysis(null);
+      return;
+    }
+    $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("processing")}</strong><p>${tr("fileWaiting")}</p></article>`;
+    try {
+      selectedEvidenceAnalysis = await analyzeEvidenceFile(file);
+      renderPendingEvidenceAnalysis(selectedEvidenceAnalysis);
+    } catch {
+      selectedEvidenceAnalysis = {
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        fileSizeLabel: fileSizeLabel(file.size),
+        status: "review_required",
+        confidence: 0,
+        summary: tr("analysisLowRes")
+      };
+      renderPendingEvidenceAnalysis(selectedEvidenceAnalysis);
+    }
+  });
   $("#askAssistant").addEventListener("click", assistantReply);
   $("#refreshMarket").addEventListener("click", renderMarket);
   $$(".lang-option").forEach((button) => {
@@ -599,6 +787,7 @@ function bindEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initSupabase();
   bindEvents();
   $("#questionBox").value = tr("questionDefault");
   initMap();
