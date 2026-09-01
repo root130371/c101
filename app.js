@@ -128,6 +128,13 @@ const i18n = {
     medianRentLabel: "Medyan yakın kira",
     aboveMedian: (delta) => `Talep edilen kira çevre medyanından ${delta} yüksek.`,
     belowMedian: (delta) => `Talep edilen kira çevre medyanından ${delta} düşük.`,
+    marketAbove: "Medyan üstü",
+    marketBelow: "Medyan altı",
+    marketEqual: "Medyan civarı",
+    rentPerM2: "m2 kira",
+    listingSourceLabel: "Kaynak",
+    listingProofLabel: "Kanıt",
+    proofMissing: "Kanıt girilmedi",
     adminEyebrow: "Admin paneli",
     adminTitle: "Kira verisi girişi",
     adminLocked: "Giriş gerekli",
@@ -290,6 +297,13 @@ const i18n = {
     medianRentLabel: "Median nearby rent",
     aboveMedian: (delta) => `The requested rent is ${delta} above the local median.`,
     belowMedian: (delta) => `The requested rent is ${delta} below the local median.`,
+    marketAbove: "Above median",
+    marketBelow: "Below median",
+    marketEqual: "Near median",
+    rentPerM2: "Rent / m2",
+    listingSourceLabel: "Source",
+    listingProofLabel: "Proof",
+    proofMissing: "No proof entered",
     adminEyebrow: "Admin panel",
     adminTitle: "Rent data entry",
     adminLocked: "Login required",
@@ -355,6 +369,7 @@ let supabaseClient = null;
 let currentUser = null;
 let currentProfile = null;
 let welcomeAuthMode = "login";
+let selectedListingIndex = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -365,6 +380,22 @@ const tr = (key, ...args) => {
 
 function money(value) {
   return `TL${Number(value || 0).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { maximumFractionDigits: 0 })}`;
+}
+
+function rentPerSquareMeter(item) {
+  const rent = Number(item.rent || 0);
+  const size = Number(item.size || 0);
+  return size > 0 ? Math.round(rent / size) : 0;
+}
+
+function marketComparison(item, median) {
+  const rent = Number(item.rent || 0);
+  if (!median || Math.abs(rent - median) <= median * 0.03) {
+    return { key: "marketEqual", className: "equal" };
+  }
+  return rent > median
+    ? { key: "marketAbove", className: "above" }
+    : { key: "marketBelow", className: "below" };
 }
 
 function escapeHtml(value) {
@@ -923,12 +954,13 @@ function renderMarket() {
   const data = readRentData();
   const requested = Number($("#requestedRent").value || 0);
   $("#marketDataStatus").textContent = tr(data.length ? "available" : "unavailable");
+  if (selectedListingIndex !== null && selectedListingIndex >= data.length) selectedListingIndex = null;
   if (rentMarkers) rentMarkers.clearLayers();
 
   if (!data.length) {
     $("#medianRent").textContent = money(0);
     $("#rentVerdict").textContent = tr("noRentDataBody");
-    $("#listingList").innerHTML = `<article class="listing"><strong>${tr("noRentDataTitle")}</strong><p>${tr("noRentDataBody")}</p></article>`;
+    $("#listingList").innerHTML = `<article class="listing empty"><strong>${tr("noRentDataTitle")}</strong><p>${tr("noRentDataBody")}</p></article>`;
     return;
   }
 
@@ -936,12 +968,45 @@ function renderMarket() {
   const median = sorted[Math.floor(sorted.length / 2)];
   $("#medianRent").textContent = money(median);
   $("#rentVerdict").textContent = tr(requested >= median ? "aboveMedian" : "belowMedian", money(Math.abs(requested - median)));
-  $("#listingList").innerHTML = data.map((item, index) => `<article class="listing"><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.neighborhood || "Narlıdere")} · ${money(item.rent)} · ${escapeHtml(item.size)} m2</small><p>${escapeHtml(item.address || item.source || "")}</p></div>${canEditListings() ? `<div class="listing-actions"><button type="button" data-edit="${index}">${tr("editListing")}</button><button type="button" data-delete="${index}">${tr("deleteListing")}</button></div>` : ""}</article>`).join("");
+  $("#listingList").innerHTML = data.map((item, index) => {
+    const comparison = marketComparison(item, median);
+    const source = item.source || (lang === "tr" ? "Manuel giriş" : "Manual entry");
+    const proof = item.proof || tr("proofMissing");
+    return `<article class="listing proof-card ${selectedListingIndex === index ? "active" : ""}" data-focus-listing="${index}">
+      <div class="listing-main">
+        <div>
+          <strong>${escapeHtml(item.title || item.neighborhood || "Narlıdere")}</strong>
+          <small><i class="ph ph-map-pin"></i>${escapeHtml(item.neighborhood || "Narlıdere")}</small>
+        </div>
+        <span class="market-badge ${comparison.className}">${tr(comparison.key)}</span>
+      </div>
+      <div class="listing-price-row">
+        <span class="listing-rent">${money(item.rent)}</span>
+        <span>${escapeHtml(item.size || "-")} m2</span>
+        <span>${money(rentPerSquareMeter(item))} ${tr("rentPerM2")}</span>
+      </div>
+      <p>${escapeHtml(item.address || "")}</p>
+      <div class="listing-meta">
+        <span><i class="ph ph-database"></i>${tr("listingSourceLabel")}: ${escapeHtml(source)}</span>
+        <span><i class="ph ph-shield-check"></i>${tr("listingProofLabel")}: ${escapeHtml(proof)}</span>
+      </div>
+      ${canEditListings() ? `<div class="listing-actions"><button type="button" data-edit="${index}">${tr("editListing")}</button><button type="button" data-delete="${index}">${tr("deleteListing")}</button></div>` : ""}
+    </article>`;
+  }).join("");
 
   if (rentMarkers) {
-    data.forEach((item) => {
+    data.forEach((item, index) => {
       if (!Number.isFinite(Number(item.lat)) || !Number.isFinite(Number(item.lng))) return;
-      L.marker([Number(item.lat), Number(item.lng)]).addTo(rentMarkers).bindPopup(`<strong>${escapeHtml(item.title)}</strong><br>${money(item.rent)}`);
+      const comparison = marketComparison(item, median);
+      L.marker([Number(item.lat), Number(item.lng)], {
+        icon: L.divIcon({
+          className: `proof-marker ${comparison.className}`,
+          html: `<span>${money(item.rent)}</span>`,
+          iconSize: [86, 34],
+          iconAnchor: [43, 34],
+          popupAnchor: [0, -30]
+        })
+      }).addTo(rentMarkers).bindPopup(`<strong>${escapeHtml(item.title)}</strong><br>${money(item.rent)}<br>${tr(comparison.key)}`);
     });
   }
   updateStatuses();
@@ -1175,6 +1240,18 @@ function bindEvents() {
       const [removed] = data.splice(Number(del.dataset.delete), 1);
       await deleteRemoteRentListing(removed);
       writeJson(RENT_KEY, data);
+      renderMarket();
+      return;
+    }
+    if (edit) return;
+    const card = event.target.closest("[data-focus-listing]");
+    if (card) {
+      const index = Number(card.dataset.focusListing);
+      const item = readRentData()[index];
+      selectedListingIndex = index;
+      if (item && rentMap && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))) {
+        rentMap.setView([Number(item.lat), Number(item.lng)], Math.max(rentMap.getZoom(), 16));
+      }
       renderMarket();
     }
   });
