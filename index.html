@@ -32,6 +32,7 @@
           <a href="#contract" data-i18n="navContract">Kontrat</a>
           <a href="#deposit" data-i18n="navDeposit">Kanıt kasası</a>
           <a href="#market" data-i18n="navMarket">Yakın kiralar</a>
+          <a href="#account" data-i18n="navAccount">Hesap</a>
           <a href="#admin" data-i18n="navAdmin">Admin</a>
           <a href="#assistant" data-i18n="navAssistant">Asistan</a>
         </nav>
@@ -65,7 +66,33 @@
           <div><span data-i18n="statusContract">Kontrat</span><strong id="contractStatus">Mevcut değil</strong></div>
           <div><span data-i18n="statusEvidence">Kanıt</span><strong id="evidenceStatus">Mevcut değil</strong></div>
           <div><span data-i18n="statusMarket">Kira verisi</span><strong id="marketDataStatus">Mevcut değil</strong></div>
-          <div><span data-i18n="statusAdmin">Admin</span><strong id="adminStatusMini">Giriş gerekli</strong></div>
+          <div><span data-i18n="statusAccount">Hesap</span><strong id="accountStatusMini">Giriş gerekli</strong></div>
+        </section>
+
+        <section id="account" class="panel account-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="accountEyebrow">Hesap</p>
+              <h2 data-i18n="accountTitle">Kalıcı kanıt yükleme</h2>
+            </div>
+            <div class="market-status" id="accountStatus" data-i18n="accountLoggedOut">Giriş gerekli</div>
+          </div>
+          <div class="account-layout">
+            <form id="authForm" class="auth-form">
+              <label><span data-i18n="emailLabel">E-posta</span><input id="authEmail" type="email" autocomplete="email" /></label>
+              <label><span data-i18n="passwordLabel">Şifre</span><input id="authPassword" type="password" autocomplete="current-password" /></label>
+              <div class="admin-actions">
+                <button class="primary" type="button" id="signInButton" data-i18n="signIn">Giriş yap</button>
+                <button class="secondary" type="button" id="signUpButton" data-i18n="signUp">Kayıt ol</button>
+              </div>
+            </form>
+            <div id="authSession" class="auth-session hidden">
+              <strong id="authUserEmail"></strong>
+              <p data-i18n="authSessionText">Kanıt dosyaları bu hesap altında Supabase Storage'a kalıcı olarak yüklenecek.</p>
+              <button class="secondary" type="button" id="signOutButton" data-i18n="signOut">Çıkış yap</button>
+            </div>
+            <p class="admin-hint" id="authMessage" data-i18n="authHint">Kanıtları kalıcı saklamak için giriş yapın. Giriş yoksa dosyalar sadece bu tarayıcıda geçici kalır.</p>
+          </div>
         </section>
 
         <section class="toolbar">

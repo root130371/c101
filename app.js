@@ -18,6 +18,7 @@ const i18n = {
     navContract: "Kontrat",
     navDeposit: "Kanıt kasası",
     navMarket: "Yakın kiralar",
+    navAccount: "Hesap",
     navAdmin: "Admin",
     navAssistant: "Asistan",
     applyLanguage: "Uygula",
@@ -35,7 +36,7 @@ const i18n = {
     statusContract: "Kontrat",
     statusEvidence: "Kanıt",
     statusMarket: "Kira verisi",
-    statusAdmin: "Admin",
+    statusAccount: "Hesap",
     available: "Mevcut",
     unavailable: "Mevcut değil",
     districtLabel: "İl / ilçe",
@@ -80,6 +81,23 @@ const i18n = {
     uploadNeedsLogin: "Kalıcı Supabase yükleme için kullanıcı girişi gerekir; dosya bu cihazda geçici kanıt olarak tutuldu.",
     uploadRemote: "Dosya Supabase Storage'a yüklendi.",
     uploadFailedLocal: "Supabase yükleme başarısız oldu; dosya bu cihazda geçici kanıt olarak tutuldu.",
+    accountEyebrow: "Hesap",
+    accountTitle: "Kalıcı kanıt yükleme",
+    accountLoggedOut: "Giriş gerekli",
+    accountLoggedIn: "Giriş yapıldı",
+    emailLabel: "E-posta",
+    passwordLabel: "Şifre",
+    signIn: "Giriş yap",
+    signUp: "Kayıt ol",
+    signOut: "Çıkış yap",
+    authHint: "Kanıtları kalıcı saklamak için giriş yapın. Giriş yoksa dosyalar sadece bu tarayıcıda geçici kalır.",
+    authSessionText: "Kanıt dosyaları bu hesap altında Supabase Storage'a kalıcı olarak yüklenecek.",
+    authMissingFields: "E-posta ve şifre girin.",
+    authSignUpSent: "Kayıt isteği gönderildi. Supabase e-posta onayı istiyorsa gelen kutunuzu kontrol edin.",
+    authSignedIn: "Giriş başarılı.",
+    authSignedOut: "Çıkış yapıldı.",
+    authError: (message) => `Hesap işlemi başarısız: ${message}`,
+    authUnavailable: "Supabase bağlantısı yüklenemedi. İnternet bağlantısını kontrol edin.",
     marketEyebrow: "Yakın kiralar",
     marketTitle: "Mahalle kira kanıt haritası",
     manualData: "Admin verisi",
@@ -141,6 +159,7 @@ const i18n = {
     navContract: "Contract",
     navDeposit: "Evidence vault",
     navMarket: "Nearby rents",
+    navAccount: "Account",
     navAdmin: "Admin",
     navAssistant: "Assistant",
     applyLanguage: "Apply",
@@ -158,7 +177,7 @@ const i18n = {
     statusContract: "Contract",
     statusEvidence: "Evidence",
     statusMarket: "Rent data",
-    statusAdmin: "Admin",
+    statusAccount: "Account",
     available: "Available",
     unavailable: "Not available",
     districtLabel: "City / district",
@@ -203,6 +222,23 @@ const i18n = {
     uploadNeedsLogin: "Permanent Supabase upload requires user login; the file was kept as temporary evidence on this device.",
     uploadRemote: "File uploaded to Supabase Storage.",
     uploadFailedLocal: "Supabase upload failed; file was kept as temporary evidence on this device.",
+    accountEyebrow: "Account",
+    accountTitle: "Permanent evidence upload",
+    accountLoggedOut: "Login required",
+    accountLoggedIn: "Signed in",
+    emailLabel: "Email",
+    passwordLabel: "Password",
+    signIn: "Sign in",
+    signUp: "Sign up",
+    signOut: "Sign out",
+    authHint: "Sign in to store evidence permanently. Without login, files stay temporary in this browser.",
+    authSessionText: "Evidence files will be permanently uploaded to Supabase Storage under this account.",
+    authMissingFields: "Enter email and password.",
+    authSignUpSent: "Signup request sent. If Supabase requires email confirmation, check your inbox.",
+    authSignedIn: "Signed in.",
+    authSignedOut: "Signed out.",
+    authError: (message) => `Account action failed: ${message}`,
+    authUnavailable: "Supabase connection could not load. Check your internet connection.",
     marketEyebrow: "Nearby rents",
     marketTitle: "Neighborhood rent proof map",
     manualData: "Admin data",
@@ -273,6 +309,7 @@ let adminLoggedIn = sessionStorage.getItem("tenantShieldAdmin") === "1";
 let editingIndex = null;
 let selectedEvidenceAnalysis = null;
 let supabaseClient = null;
+let currentUser = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -305,6 +342,11 @@ function writeJson(key, value) {
 function initSupabase() {
   if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      renderAuthState();
+      loadRemoteEvidence();
+    });
   }
 }
 
@@ -337,11 +379,21 @@ function readImage(file) {
     reader.onload = () => {
       const image = new Image();
       image.onerror = reject;
-      image.onload = () => resolve({ dataUrl: reader.result, width: image.naturalWidth, height: image.naturalHeight });
+      image.onload = () => resolve({ element: image, dataUrl: reader.result, width: image.naturalWidth, height: image.naturalHeight });
       image.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+function makeThumbnail(image, maxWidth = 360) {
+  const scale = Math.min(1, maxWidth / image.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(image.width * scale);
+  canvas.height = Math.round(image.height * scale);
+  const context = canvas.getContext("2d");
+  context.drawImage(image.element, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.72);
 }
 
 async function analyzeEvidenceFile(file) {
@@ -364,7 +416,7 @@ async function analyzeEvidenceFile(file) {
   const enoughResolution = image.width >= 1000 && image.height >= 700;
   return {
     ...base,
-    previewUrl: image.dataUrl,
+    previewUrl: makeThumbnail(image),
     width: image.width,
     height: image.height,
     status: enoughResolution ? "available" : "review_required",
@@ -375,13 +427,11 @@ async function analyzeEvidenceFile(file) {
 
 async function uploadEvidenceFile(file, analysis) {
   if (!supabaseClient) return { storageStatus: "local", message: tr("uploadLocal") };
-  const { data: authData } = await supabaseClient.auth.getUser();
-  const user = authData?.user;
-  if (!user) {
+  if (!currentUser) {
     return { storageStatus: "local", message: tr("uploadNeedsLogin") };
   }
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${user.id}/${Date.now()}-${safeName}`;
+  const path = `${currentUser.id}/${Date.now()}-${safeName}`;
   const { error } = await supabaseClient.storage.from(EVIDENCE_BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false
@@ -392,6 +442,119 @@ async function uploadEvidenceFile(file, analysis) {
   }
 
   return { storageStatus: "remote", storagePath: path, message: tr("uploadRemote"), analysis };
+}
+
+async function saveRemoteEvidence(item) {
+  if (!supabaseClient || !currentUser || item.storageStatus !== "remote") return;
+  const { data, error } = await supabaseClient
+    .from("evidence_items")
+    .insert({
+      user_id: currentUser.id,
+      type: item.type,
+      status: item.status,
+      file_bucket: EVIDENCE_BUCKET,
+      file_path: item.storagePath,
+      file_name: item.fileName,
+      file_type: item.fileType,
+      file_size: item.fileSize,
+      confidence: item.confidence,
+      summary_tr: lang === "tr" ? item.summary : null,
+      summary_en: lang === "en" ? item.summary : null,
+      extracted_json: {
+        width: item.width || null,
+        height: item.height || null,
+        note: item.note || null,
+        storage_status: item.storageStatus
+      }
+    })
+    .select("id")
+    .single();
+
+  if (!error && data?.id) {
+    item.remoteId = data.id;
+  }
+}
+
+async function loadRemoteEvidence() {
+  if (!supabaseClient || !currentUser) return;
+  const { data, error } = await supabaseClient
+    .from("evidence_items")
+    .select("id,type,status,file_name,file_type,file_size,confidence,summary_tr,summary_en,extracted_json,created_at,file_path")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if (error || !Array.isArray(data)) return;
+
+  const remoteItems = data.map((item) => ({
+    remoteId: item.id,
+    type: item.type,
+    status: item.status,
+    confidence: Number(item.confidence || 0),
+    summary: item.summary_tr || item.summary_en || "",
+    fileName: item.file_name,
+    fileType: item.file_type,
+    fileSize: item.file_size,
+    fileSizeLabel: fileSizeLabel(Number(item.file_size || 0)),
+    width: item.extracted_json?.width || null,
+    height: item.extracted_json?.height || null,
+    note: item.extracted_json?.note || "",
+    storageStatus: "remote",
+    storagePath: item.file_path,
+    createdAt: item.created_at
+  }));
+
+  const localOnly = readEvidence().filter((item) => !item.remoteId);
+  writeJson(EVIDENCE_KEY, [...remoteItems, ...localOnly]);
+  renderEvidence();
+}
+
+function setAuthMessage(message) {
+  $("#authMessage").textContent = message;
+}
+
+function renderAuthState() {
+  const signedIn = Boolean(currentUser);
+  $("#authForm").classList.toggle("hidden", signedIn);
+  $("#authSession").classList.toggle("hidden", !signedIn);
+  $("#authUserEmail").textContent = currentUser?.email || "";
+  $("#accountStatus").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
+  $("#accountStatusMini").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
+}
+
+async function signIn() {
+  if (!supabaseClient) {
+    setAuthMessage(tr("authUnavailable"));
+    return;
+  }
+  const email = $("#authEmail").value.trim();
+  const password = $("#authPassword").value;
+  if (!email || !password) {
+    setAuthMessage(tr("authMissingFields"));
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  setAuthMessage(error ? tr("authError", error.message) : tr("authSignedIn"));
+}
+
+async function signUp() {
+  if (!supabaseClient) {
+    setAuthMessage(tr("authUnavailable"));
+    return;
+  }
+  const email = $("#authEmail").value.trim();
+  const password = $("#authPassword").value;
+  if (!email || !password) {
+    setAuthMessage(tr("authMissingFields"));
+    return;
+  }
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  setAuthMessage(error ? tr("authError", error.message) : tr("authSignUpSent"));
+}
+
+async function signOut() {
+  if (!supabaseClient) return;
+  const { error } = await supabaseClient.auth.signOut();
+  setAuthMessage(error ? tr("authError", error.message) : tr("authSignedOut"));
 }
 
 function calculateRent() {
@@ -484,7 +647,7 @@ async function addEvidence() {
   const items = readEvidence();
   const type = $("#evidenceType").value;
   const note = $("#evidenceNote").value.trim();
-  items.unshift({
+  const item = {
     type,
     note,
     status: analysis.status,
@@ -500,7 +663,9 @@ async function addEvidence() {
     storageStatus: upload.storageStatus,
     storagePath: upload.storagePath,
     createdAt: new Date().toISOString()
-  });
+  };
+  await saveRemoteEvidence(item);
+  items.unshift(item);
   writeJson(EVIDENCE_KEY, items);
   $("#evidenceNote").value = "";
   $("#evidenceFile").value = "";
@@ -529,8 +694,8 @@ function updateStatuses() {
   $("#contractStatus").textContent = tr(hasContract ? "available" : "unavailable");
   $("#evidenceStatus").textContent = tr(hasEvidence ? "available" : "unavailable");
   $("#marketDataStatus").textContent = tr(hasMarket ? "available" : "unavailable");
-  $("#adminStatusMini").textContent = tr(adminLoggedIn ? "adminUnlocked" : "adminLocked");
   $("#adminStatus").textContent = tr(adminLoggedIn ? "adminUnlocked" : "adminLocked");
+  $("#accountStatusMini").textContent = tr(currentUser ? "accountLoggedIn" : "accountLoggedOut");
   renderChecklist();
 }
 
@@ -704,6 +869,9 @@ function applyLanguage() {
 }
 
 function bindEvents() {
+  $("#signInButton").addEventListener("click", signIn);
+  $("#signUpButton").addEventListener("click", signUp);
+  $("#signOutButton").addEventListener("click", signOut);
   $("#calculateRent").addEventListener("click", calculateRent);
   ["#currentRent", "#requestedRent", "#cpiRate"].forEach((selector) => $(selector).addEventListener("input", calculateRent));
   $("#contractUpload").addEventListener("change", (event) => {
@@ -795,4 +963,13 @@ document.addEventListener("DOMContentLoaded", () => {
   renderEvidence();
   renderContract();
   applyLanguage();
+  if (supabaseClient) {
+    supabaseClient.auth.getSession().then(({ data }) => {
+      currentUser = data?.session?.user || null;
+      renderAuthState();
+      loadRemoteEvidence();
+    });
+  } else {
+    renderAuthState();
+  }
 });
