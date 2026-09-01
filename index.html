@@ -7,6 +7,7 @@
     <title>Kiracı Kalkanı</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body translate="no">
     <div class="app-shell">
@@ -44,6 +45,17 @@
       </aside>
 
       <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" data-i18n="topbarEyebrow">Genel bakış</p>
+            <h2 data-i18n="topbarTitle">Kiracı dosyanız</h2>
+          </div>
+          <div class="topbar-actions">
+            <a class="secondary link-button" href="#account" data-i18n="topbarAccount">Hesap</a>
+            <a class="primary link-button" href="#deposit" data-i18n="topbarEvidence">Kanıt yükle</a>
+          </div>
+        </header>
+
         <section id="dashboard" class="hero-band">
           <div>
             <p class="eyebrow" data-i18n="heroEyebrow">Kiracı koruma paneli</p>
@@ -55,10 +67,10 @@
             </div>
           </div>
           <div class="summary-grid">
-            <div class="metric"><span data-i18n="metricRentLabel">Mevcut kira</span><strong id="metricRent">TL18.000</strong></div>
-            <div class="metric warn"><span data-i18n="metricAskLabel">Talep edilen kira</span><strong id="metricAsk">TL29.000</strong></div>
-            <div class="metric ok"><span data-i18n="metricMaxLabel">Hesaplanan üst sınır</span><strong id="metricMax">TL23.742</strong></div>
-            <div class="metric"><span data-i18n="metricScoreLabel">Dosya skoru</span><strong id="caseScore">72%</strong></div>
+            <div class="metric"><div class="metric-icon ok"><i class="ph ph-house-line"></i></div><span data-i18n="metricRentLabel">Mevcut kira</span><strong id="metricRent">TL18.000</strong></div>
+            <div class="metric warn"><div class="metric-icon warn"><i class="ph ph-trend-up"></i></div><span data-i18n="metricAskLabel">Talep edilen kira</span><strong id="metricAsk">TL29.000</strong></div>
+            <div class="metric ok"><div class="metric-icon ok"><i class="ph ph-scales"></i></div><span data-i18n="metricMaxLabel">Hesaplanan üst sınır</span><strong id="metricMax">TL23.742</strong></div>
+            <div class="metric"><div class="metric-icon info"><i class="ph ph-folder-simple-lock"></i></div><span data-i18n="metricScoreLabel">Dosya skoru</span><strong id="caseScore">72%</strong></div>
           </div>
         </section>
 
