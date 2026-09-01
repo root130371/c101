@@ -10,6 +10,35 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body translate="no">
+    <section class="welcome-gate hidden" id="welcomeGate" aria-labelledby="welcomeTitle" role="dialog" aria-modal="true">
+      <div class="welcome-panel">
+        <div class="welcome-copy">
+          <div class="brand-mark">K</div>
+          <p class="eyebrow" data-i18n="welcomeEyebrow">Kiracı dosyanı başlat</p>
+          <h1 id="welcomeTitle" data-i18n="welcomeTitle">Kanıtlarını güvenle sakla, kira talebini kontrol et.</h1>
+          <p data-i18n="welcomeBody">Hesap açarsan kanıt dosyaların Supabase Storage'a kalıcı yüklenir. İstersen hesap açmadan demo modunda devam edebilirsin.</p>
+          <div class="welcome-benefits">
+            <span data-i18n="welcomeBenefitUpload">Kalıcı kanıt yükleme</span>
+            <span data-i18n="welcomeBenefitMap">Emsal kira haritası</span>
+            <span data-i18n="welcomeBenefitAssistant">Asistan hazırlığı</span>
+          </div>
+        </div>
+        <div class="welcome-auth">
+          <div class="auth-tabs" role="tablist">
+            <button class="active" type="button" id="welcomeLoginTab" data-auth-mode="login" data-i18n="signIn">Giriş yap</button>
+            <button type="button" id="welcomeSignupTab" data-auth-mode="signup" data-i18n="signUp">Kayıt ol</button>
+          </div>
+          <label><span data-i18n="emailLabel">E-posta</span><input id="welcomeEmail" type="email" autocomplete="email" /></label>
+          <label><span data-i18n="passwordLabel">Şifre</span><input id="welcomePassword" type="password" autocomplete="current-password" /></label>
+          <button class="primary" type="button" id="welcomeSubmit" data-i18n="signIn">Giriş yap</button>
+          <button class="text-button" type="button" id="welcomeForgot" data-i18n="forgotPassword">Şifremi unuttum</button>
+          <div class="or-line"><span data-i18n="orContinue">veya</span></div>
+          <button class="secondary" type="button" id="continueGuest" data-i18n="continueGuest">Hesap açmadan devam et</button>
+          <p class="admin-hint" id="welcomeMessage" data-i18n="welcomeHint">Kalıcı yükleme için hesap önerilir; demo modunda veriler bu tarayıcıda kalır.</p>
+        </div>
+      </div>
+    </section>
+
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
@@ -96,6 +125,7 @@
               <div class="admin-actions">
                 <button class="primary" type="button" id="signInButton" data-i18n="signIn">Giriş yap</button>
                 <button class="secondary" type="button" id="signUpButton" data-i18n="signUp">Kayıt ol</button>
+                <button class="text-button" type="button" id="resetPasswordButton" data-i18n="forgotPassword">Şifremi unuttum</button>
               </div>
             </form>
             <div id="authSession" class="auth-session hidden">

@@ -2,6 +2,7 @@ const RENT_KEY = "tenantShieldNarlidereRentData";
 const EVIDENCE_KEY = "tenantShieldEvidence";
 const CONTRACT_KEY = "tenantShieldContract";
 const LANG_KEY = "tenantShieldLang";
+const GUEST_KEY = "tenantShieldGuestMode";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "c101admin";
 const NARLIDERE_CENTER = [38.3897, 27.0144];
@@ -24,6 +25,16 @@ const i18n = {
     applyLanguage: "Uygula",
     dataStatusTitle: "Veri durumu",
     dataStatusBody: "Bu test sürümünde yakın kira verisi admin tarafından manuel girilir. Canlı ilan verisi için lisanslı kaynak veya kullanıcı kanıtı gerekir.",
+    welcomeEyebrow: "Kiracı dosyanı başlat",
+    welcomeTitle: "Kanıtlarını güvenle sakla, kira talebini kontrol et.",
+    welcomeBody: "Hesap açarsan kanıt dosyaların Supabase Storage'a kalıcı yüklenir. İstersen hesap açmadan demo modunda devam edebilirsin.",
+    welcomeBenefitUpload: "Kalıcı kanıt yükleme",
+    welcomeBenefitMap: "Emsal kira haritası",
+    welcomeBenefitAssistant: "Asistan hazırlığı",
+    continueGuest: "Hesap açmadan devam et",
+    forgotPassword: "Şifremi unuttum",
+    orContinue: "veya",
+    welcomeHint: "Kalıcı yükleme için hesap önerilir; demo modunda veriler bu tarayıcıda kalır.",
     topbarEyebrow: "Genel bakış",
     topbarTitle: "Kiracı dosyanız",
     topbarAccount: "Hesap",
@@ -100,6 +111,8 @@ const i18n = {
     authSignUpSent: "Kayıt isteği gönderildi. Supabase e-posta onayı istiyorsa gelen kutunuzu kontrol edin.",
     authSignedIn: "Giriş başarılı.",
     authSignedOut: "Çıkış yapıldı.",
+    resetSent: "Şifre sıfırlama bağlantısı e-postanıza gönderildi.",
+    guestMode: "Demo modunda devam ediyorsunuz. Kalıcı kanıt yüklemek için istediğiniz zaman hesap açabilirsiniz.",
     authError: (message) => `Hesap işlemi başarısız: ${message}`,
     authUnavailable: "Supabase bağlantısı yüklenemedi. İnternet bağlantısını kontrol edin.",
     marketEyebrow: "Yakın kiralar",
@@ -169,6 +182,16 @@ const i18n = {
     applyLanguage: "Apply",
     dataStatusTitle: "Data status",
     dataStatusBody: "In this test version, nearby rent data is entered manually by an admin. Live listing data needs a licensed source or user-submitted proof.",
+    welcomeEyebrow: "Start your tenant file",
+    welcomeTitle: "Store proof safely and check rent requests.",
+    welcomeBody: "Create an account to upload evidence permanently to Supabase Storage, or continue in demo mode without an account.",
+    welcomeBenefitUpload: "Permanent evidence upload",
+    welcomeBenefitMap: "Comparable rent map",
+    welcomeBenefitAssistant: "Assistant preparation",
+    continueGuest: "Continue without account",
+    forgotPassword: "Forgot password",
+    orContinue: "or",
+    welcomeHint: "An account is recommended for permanent uploads; demo data stays in this browser.",
     topbarEyebrow: "Overview",
     topbarTitle: "Your tenant file",
     topbarAccount: "Account",
@@ -245,6 +268,8 @@ const i18n = {
     authSignUpSent: "Signup request sent. If Supabase requires email confirmation, check your inbox.",
     authSignedIn: "Signed in.",
     authSignedOut: "Signed out.",
+    resetSent: "Password reset link was sent to your email.",
+    guestMode: "You are continuing in demo mode. You can create an account anytime for permanent evidence uploads.",
     authError: (message) => `Account action failed: ${message}`,
     authUnavailable: "Supabase connection could not load. Check your internet connection.",
     marketEyebrow: "Nearby rents",
@@ -319,6 +344,7 @@ let selectedEvidenceAnalysis = null;
 let supabaseClient = null;
 let currentUser = null;
 let currentProfile = null;
+let welcomeAuthMode = "login";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -615,6 +641,7 @@ async function deleteRemoteRentListing(item) {
 
 function setAuthMessage(message) {
   $("#authMessage").textContent = message;
+  $("#welcomeMessage").textContent = message;
 }
 
 function renderAuthState() {
@@ -624,31 +651,53 @@ function renderAuthState() {
   $("#authUserEmail").textContent = currentUser?.email || "";
   $("#accountStatus").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
   $("#accountStatusMini").textContent = tr(signedIn ? "accountLoggedIn" : "accountLoggedOut");
+  renderWelcomeGate();
   renderAdminState();
 }
 
-async function signIn() {
+function credentials(scope = "account") {
+  if (scope === "welcome") {
+    return {
+      email: $("#welcomeEmail").value.trim(),
+      password: $("#welcomePassword").value
+    };
+  }
+  return {
+    email: $("#authEmail").value.trim(),
+    password: $("#authPassword").value
+  };
+}
+
+function renderWelcomeGate() {
+  const shouldShow = !currentUser && localStorage.getItem(GUEST_KEY) !== "1";
+  $("#welcomeGate").classList.toggle("hidden", !shouldShow);
+  $("#welcomeSubmit").textContent = tr(welcomeAuthMode === "login" ? "signIn" : "signUp");
+  $$(".auth-tabs button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.authMode === welcomeAuthMode);
+  });
+}
+
+async function signIn(scope = "account") {
   if (!supabaseClient) {
     setAuthMessage(tr("authUnavailable"));
     return;
   }
-  const email = $("#authEmail").value.trim();
-  const password = $("#authPassword").value;
+  const { email, password } = credentials(scope);
   if (!email || !password) {
     setAuthMessage(tr("authMissingFields"));
     return;
   }
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (!error) localStorage.removeItem(GUEST_KEY);
   setAuthMessage(error ? tr("authError", error.message) : tr("authSignedIn"));
 }
 
-async function signUp() {
+async function signUp(scope = "account") {
   if (!supabaseClient) {
     setAuthMessage(tr("authUnavailable"));
     return;
   }
-  const email = $("#authEmail").value.trim();
-  const password = $("#authPassword").value;
+  const { email, password } = credentials(scope);
   if (!email || !password) {
     setAuthMessage(tr("authMissingFields"));
     return;
@@ -661,6 +710,28 @@ async function signOut() {
   if (!supabaseClient) return;
   const { error } = await supabaseClient.auth.signOut();
   setAuthMessage(error ? tr("authError", error.message) : tr("authSignedOut"));
+}
+
+async function resetPassword(scope = "account") {
+  if (!supabaseClient) {
+    setAuthMessage(tr("authUnavailable"));
+    return;
+  }
+  const { email } = credentials(scope);
+  if (!email) {
+    setAuthMessage(tr("authMissingFields"));
+    return;
+  }
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href.split("#")[0]
+  });
+  setAuthMessage(error ? tr("authError", error.message) : tr("resetSent"));
+}
+
+function continueAsGuest() {
+  localStorage.setItem(GUEST_KEY, "1");
+  setAuthMessage(tr("guestMode"));
+  renderWelcomeGate();
 }
 
 function calculateRent() {
@@ -976,12 +1047,26 @@ function applyLanguage() {
   renderContract();
   renderEvidence();
   renderAdminState();
+  renderWelcomeGate();
 }
 
 function bindEvents() {
-  $("#signInButton").addEventListener("click", signIn);
-  $("#signUpButton").addEventListener("click", signUp);
+  $("#signInButton").addEventListener("click", () => signIn("account"));
+  $("#signUpButton").addEventListener("click", () => signUp("account"));
   $("#signOutButton").addEventListener("click", signOut);
+  $("#resetPasswordButton").addEventListener("click", () => resetPassword("account"));
+  $("#welcomeSubmit").addEventListener("click", () => {
+    if (welcomeAuthMode === "login") signIn("welcome");
+    else signUp("welcome");
+  });
+  $("#welcomeForgot").addEventListener("click", () => resetPassword("welcome"));
+  $("#continueGuest").addEventListener("click", continueAsGuest);
+  $$(".auth-tabs button").forEach((button) => {
+    button.addEventListener("click", () => {
+      welcomeAuthMode = button.dataset.authMode;
+      renderWelcomeGate();
+    });
+  });
   $("#calculateRent").addEventListener("click", calculateRent);
   ["#currentRent", "#requestedRent", "#cpiRate"].forEach((selector) => $(selector).addEventListener("input", calculateRent));
   $("#contractUpload").addEventListener("change", (event) => {
