@@ -8,6 +8,9 @@
   --brand: #0284c7;
   --brand-dark: #0369a1;
   --teal: #0f766e;
+  --violet: #7c3aed;
+  --rose: #e11d48;
+  --orange: #ea580c;
   --amber: #b7791f;
   --red: #b42318;
   --green: #087443;
@@ -26,7 +29,10 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 14% 10%, rgba(56, 189, 248, 0.18), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(16, 185, 129, 0.14), transparent 26%),
+    linear-gradient(180deg, #f0f9ff 0%, #f8fafc 42%, #f7fee7 100%);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
@@ -60,7 +66,8 @@ textarea {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.25), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(124, 58, 237, 0.18), transparent 32%),
     rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(14px);
 }
@@ -180,7 +187,7 @@ textarea {
   top: 0;
   height: 100vh;
   padding: 18px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
   border-right: 1px solid var(--line);
   display: flex;
@@ -308,7 +315,7 @@ main {
   min-height: 72px;
   margin: 0 -28px;
   padding: 12px 28px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.86);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(12px);
   display: flex;
@@ -348,7 +355,8 @@ main {
   border: 0;
   color: #fff;
   background:
-    linear-gradient(135deg, rgba(2, 132, 199, 0.96), rgba(15, 118, 110, 0.96)),
+    radial-gradient(circle at 86% 20%, rgba(255, 255, 255, 0.2), transparent 24%),
+    linear-gradient(135deg, rgba(2, 132, 199, 0.96), rgba(15, 118, 110, 0.93), rgba(124, 58, 237, 0.86)),
     #0284c7;
   overflow: hidden;
 }
@@ -436,10 +444,26 @@ h2 {
 .status-strip div {
   min-height: 74px;
   padding: 14px 16px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.94);
   display: grid;
   align-content: center;
   gap: 4px;
+}
+
+.status-strip div:nth-child(1) {
+  border-top: 4px solid var(--violet);
+}
+
+.status-strip div:nth-child(2) {
+  border-top: 4px solid var(--green);
+}
+
+.status-strip div:nth-child(3) {
+  border-top: 4px solid var(--orange);
+}
+
+.status-strip div:nth-child(4) {
+  border-top: 4px solid var(--brand);
 }
 
 .status-strip span,
@@ -671,16 +695,16 @@ textarea {
 }
 
 .primary {
-  background: var(--brand);
+  background: linear-gradient(135deg, var(--brand), var(--teal));
   color: #fff;
   box-shadow: 0 8px 18px rgba(2, 132, 199, 0.22);
 }
 
 .secondary,
 .upload {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #e2e8f0;
+  background: #eef6ff;
+  color: var(--brand-dark);
+  border: 1px solid #bfdbfe;
 }
 
 .upload input {
@@ -729,6 +753,67 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title.inline {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.section-title h2 {
+  margin-bottom: 0;
+}
+
+.section-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  font-size: 25px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.section-icon.account {
+  color: #0369a1;
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+}
+
+.section-icon.calculator {
+  color: #7c2d12;
+  background: linear-gradient(135deg, #ffedd5, #fed7aa);
+}
+
+.section-icon.contract {
+  color: #5b21b6;
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+}
+
+.section-icon.evidence {
+  color: #065f46;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.section-icon.market {
+  color: #0f766e;
+  background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+}
+
+.section-icon.admin {
+  color: #9f1239;
+  background: linear-gradient(135deg, #ffe4e6, #fecdd3);
+}
+
+.section-icon.assistant {
+  color: #6d28d9;
+  background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
 }
 
 .contract-layout,
@@ -834,14 +919,17 @@ textarea {
 
 .risk.high {
   border-left: 5px solid var(--red);
+  background: linear-gradient(90deg, rgba(180, 35, 24, 0.07), #fff 38%);
 }
 
 .risk.medium {
   border-left: 5px solid var(--amber);
+  background: linear-gradient(90deg, rgba(183, 121, 31, 0.08), #fff 38%);
 }
 
 .risk.low {
   border-left: 5px solid var(--green);
+  background: linear-gradient(90deg, rgba(8, 116, 67, 0.07), #fff 38%);
 }
 
 .map-card {
@@ -891,8 +979,8 @@ textarea {
 .market-status {
   padding: 8px 10px;
   border-radius: 999px;
-  background: #fff4d9;
-  color: #7a4b00;
+  background: #fff7ed;
+  color: #9a3412;
   font-weight: 800;
   font-size: 13px;
 }

@@ -112,9 +112,12 @@
 
         <section id="account" class="panel account-panel">
           <div class="section-head">
-            <div>
+            <div class="section-title">
+              <div class="section-icon account"><i class="ph ph-user-circle"></i></div>
+              <div>
               <p class="eyebrow" data-i18n="accountEyebrow">Hesap</p>
               <h2 data-i18n="accountTitle">Kalıcı kanıt yükleme</h2>
+              </div>
             </div>
             <div class="market-status" id="accountStatus" data-i18n="accountLoggedOut">Giriş gerekli</div>
           </div>
@@ -146,7 +149,7 @@
         <section id="calculator" class="panel two-col">
           <div>
             <p class="eyebrow" data-i18n="calcEyebrow">Kira artışı</p>
-            <h2 data-i18n="calcTitle">Zam talebi kontrolü</h2>
+            <div class="section-title inline"><div class="section-icon calculator"><i class="ph ph-calculator"></i></div><h2 data-i18n="calcTitle">Zam talebi kontrolü</h2></div>
             <div class="form-grid">
               <label><span data-i18n="currentRent">Mevcut kira</span><input id="currentRent" type="number" value="18000" min="0" /></label>
               <label><span data-i18n="requestedRent">Talep edilen kira</span><input id="requestedRent" type="number" value="29000" min="0" /></label>
@@ -160,7 +163,7 @@
 
         <section id="contract" class="panel">
           <div class="section-head">
-            <div><p class="eyebrow" data-i18n="contractEyebrow">Kontrat</p><h2 data-i18n="contractTitle">Kontrat özeti ve risk işaretleri</h2></div>
+            <div class="section-title"><div class="section-icon contract"><i class="ph ph-file-text"></i></div><div><p class="eyebrow" data-i18n="contractEyebrow">Kontrat</p><h2 data-i18n="contractTitle">Kontrat özeti ve risk işaretleri</h2></div></div>
             <label class="upload"><input id="contractUpload" type="file" accept=".pdf,image/*" /><span data-i18n="uploadContract">Kontrat yükle</span></label>
           </div>
           <div class="contract-layout">
@@ -172,7 +175,7 @@
         <section id="deposit" class="panel two-col">
           <div>
             <p class="eyebrow" data-i18n="depositEyebrow">Depozito ve ödeme</p>
-            <h2 data-i18n="depositTitle">Kanıt kasası</h2>
+            <div class="section-title inline"><div class="section-icon evidence"><i class="ph ph-shield-check"></i></div><h2 data-i18n="depositTitle">Kanıt kasası</h2></div>
             <div class="evidence-grid" id="evidenceGrid"></div>
             <div class="form-grid">
               <label><span data-i18n="evidenceType">Kanıt tipi</span><select id="evidenceType"><option value="bank">Banka dekontu</option><option value="message">Mesaj ekran görüntüsü</option><option value="photo">Ev fotoğrafı</option><option value="listing">İlan linki</option></select></label>
@@ -187,7 +190,7 @@
 
         <section id="market" class="panel">
           <div class="section-head">
-            <div><p class="eyebrow" data-i18n="marketEyebrow">Yakın kiralar</p><h2 data-i18n="marketTitle">Mahalle kira kanıt haritası</h2></div>
+            <div class="section-title"><div class="section-icon market"><i class="ph ph-map-trifold"></i></div><div><p class="eyebrow" data-i18n="marketEyebrow">Yakın kiralar</p><h2 data-i18n="marketTitle">Mahalle kira kanıt haritası</h2></div></div>
             <div class="market-status" id="marketStatus" data-i18n="manualData">Admin verisi</div>
           </div>
           <div class="map-layout">
@@ -198,7 +201,7 @@
 
         <section id="admin" class="panel">
           <div class="section-head">
-            <div><p class="eyebrow" data-i18n="adminEyebrow">Admin paneli</p><h2 data-i18n="adminTitle">Kira verisi girişi</h2></div>
+            <div class="section-title"><div class="section-icon admin"><i class="ph ph-sliders-horizontal"></i></div><div><p class="eyebrow" data-i18n="adminEyebrow">Admin paneli</p><h2 data-i18n="adminTitle">Kira verisi girişi</h2></div></div>
             <div class="market-status" id="adminStatus" data-i18n="adminLocked">Giriş gerekli</div>
           </div>
           <div class="admin-layout">
@@ -236,7 +239,7 @@
         <section id="assistant" class="panel two-col">
           <div>
             <p class="eyebrow" data-i18n="assistantEyebrow">Asistan</p>
-            <h2 data-i18n="assistantTitle">Cevap taslağı hazırlayın</h2>
+            <div class="section-title inline"><div class="section-icon assistant"><i class="ph ph-sparkle"></i></div><h2 data-i18n="assistantTitle">Cevap taslağı hazırlayın</h2></div>
             <div class="checklist" id="packetChecklist"></div>
           </div>
           <div class="assistant-box">
