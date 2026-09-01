@@ -78,6 +78,11 @@ const i18n = {
     evidenceType: "Kanıt tipi",
     evidenceNote: "Not",
     evidenceFile: "Dosya / fotoğraf",
+    scannerTitle: "Belge veya fotoğraf tarat",
+    scannerBody: "Fotoğraf, dekont, mesaj ekran görüntüsü veya PDF yükleyin.",
+    scannerCta: "Dosya seç",
+    scannerConfidence: "Okunabilirlik",
+    scannerStatus: "Tarama durumu",
     addEvidence: "Kanıt ekle",
     bank: "Banka dekontu",
     message: "Mesaj ekran görüntüsü",
@@ -235,6 +240,11 @@ const i18n = {
     evidenceType: "Evidence type",
     evidenceNote: "Note",
     evidenceFile: "File / photo",
+    scannerTitle: "Scan a document or photo",
+    scannerBody: "Upload a photo, receipt, message screenshot, or PDF.",
+    scannerCta: "Choose file",
+    scannerConfidence: "Readability",
+    scannerStatus: "Scan status",
     addEvidence: "Add evidence",
     bank: "Bank receipt",
     message: "Message screenshot",
@@ -768,7 +778,17 @@ function renderEvidence() {
   $("#evidenceGrid").innerHTML = types.map((type) => {
     const item = evidence.find((entry) => entry.type === type && entry.fileName);
     const status = item?.status || "missing";
-    return `<article class="evidence-state ${status === "available" ? "ok" : "missing"}"><span>${tr(type)}</span><strong>${statusLabel(status)}</strong></article>`;
+    const icon = {
+      bank: "ph-receipt",
+      message: "ph-chat-circle-text",
+      photo: "ph-image-square",
+      listing: "ph-link"
+    }[type];
+    return `<article class="evidence-state ${status === "available" ? "ok" : "missing"}">
+      <i class="ph ${icon}"></i>
+      <span>${tr(type)}</span>
+      <strong>${statusLabel(status)}</strong>
+    </article>`;
   }).join("");
 
   $("#evidenceTimeline").innerHTML = evidence.length
@@ -795,12 +815,19 @@ function renderPendingEvidenceAnalysis(analysis) {
     $("#evidenceAnalysis").innerHTML = "";
     return;
   }
+  const confidence = Math.max(0, Math.min(100, Number(analysis.confidence || 0)));
   $("#evidenceAnalysis").innerHTML = `<article class="analysis-card ${analysis.status === "available" ? "ok" : "warn"}">
-    ${analysis.previewUrl ? `<img class="evidence-preview" src="${analysis.previewUrl}" alt="">` : ""}
-    <div>
-      <strong>${statusLabel(analysis.status)}</strong>
+    <div class="analysis-preview">
+      ${analysis.previewUrl ? `<img class="evidence-preview" src="${analysis.previewUrl}" alt="">` : `<i class="ph ph-file-pdf"></i>`}
+    </div>
+    <div class="analysis-content">
+      <div class="analysis-head">
+        <span>${tr("scannerStatus")}</span>
+        <strong>${statusLabel(analysis.status)}</strong>
+      </div>
       <p>${escapeHtml(analysis.summary)}</p>
-      <small>${escapeHtml(analysis.fileName)} · ${escapeHtml(analysis.fileSizeLabel)}</small>
+      <div class="analysis-meter" aria-label="${tr("scannerConfidence")} ${confidence}%"><span style="width: ${confidence}%"></span></div>
+      <small>${tr("scannerConfidence")}: ${confidence}% · ${escapeHtml(analysis.fileName)} · ${escapeHtml(analysis.fileSizeLabel)}</small>
     </div>
   </article>`;
 }
@@ -846,6 +873,7 @@ async function addEvidence() {
   writeJson(EVIDENCE_KEY, items);
   $("#evidenceNote").value = "";
   $("#evidenceFile").value = "";
+  $("#scannerFileName").textContent = tr("scannerCta");
   selectedEvidenceAnalysis = null;
   renderPendingEvidenceAnalysis(null);
   renderEvidence();
@@ -1082,9 +1110,11 @@ function bindEvents() {
     const file = event.target.files[0];
     selectedEvidenceAnalysis = null;
     if (!file) {
+      $("#scannerFileName").textContent = tr("scannerCta");
       renderPendingEvidenceAnalysis(null);
       return;
     }
+    $("#scannerFileName").textContent = file.name;
     $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("processing")}</strong><p>${tr("fileWaiting")}</p></article>`;
     try {
       selectedEvidenceAnalysis = await analyzeEvidenceFile(file);
