@@ -217,6 +217,50 @@ h2 {
   color: var(--muted);
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  text-decoration: none;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.status-strip div {
+  min-height: 74px;
+  padding: 14px 16px;
+  background: #fff;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.status-strip span,
+.evidence-state span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status-strip strong {
+  font-size: 18px;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,6 +295,34 @@ h2 {
 
 .metric.ok strong {
   color: var(--green);
+}
+
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.evidence-state {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.evidence-state.ok {
+  border-color: rgba(8, 116, 67, 0.35);
+  background: rgba(8, 116, 67, 0.06);
+}
+
+.evidence-state.ok strong {
+  color: var(--green);
+}
+
+.evidence-state.missing strong {
+  color: var(--red);
 }
 
 .toolbar {
@@ -417,7 +489,8 @@ textarea {
 .risk,
 .timeline-item,
 .listing,
-.check-item {
+.check-item,
+.check {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
@@ -427,9 +500,38 @@ textarea {
 .risk strong,
 .timeline-item strong,
 .listing strong,
-.check-item strong {
+.check-item strong,
+.check strong {
   display: block;
   margin-bottom: 4px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.check span {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f1f4f8;
+  color: var(--amber);
+  font-weight: 900;
+}
+
+.check.done {
+  color: var(--ink);
+  border-color: rgba(8, 116, 67, 0.35);
+}
+
+.check.done span {
+  background: rgba(8, 116, 67, 0.12);
+  color: var(--green);
 }
 
 .risk.high {
@@ -534,6 +636,16 @@ textarea {
   margin-top: 10px;
 }
 
+.listing-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .danger {
   border: 0;
   border-radius: 7px;
@@ -570,6 +682,10 @@ textarea {
   .admin-layout {
     grid-template-columns: 1fr;
   }
+
+  .status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
@@ -583,6 +699,8 @@ textarea {
   }
 
   .summary-grid,
+  .status-strip,
+  .evidence-grid,
   .form-grid,
   .nav {
     grid-template-columns: 1fr;

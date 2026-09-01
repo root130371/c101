@@ -4,13 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="google" content="notranslate" />
-    <title>Kiraci Kalkani</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
+    <title>Kiracı Kalkanı</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body translate="no">
@@ -19,90 +14,74 @@
         <div class="brand">
           <div class="brand-mark">K</div>
           <div>
-            <strong data-i18n="brand">Kiraci Kalkani</strong>
-            <span data-i18n="brandSub">Turkiye kira asistani</span>
+            <strong data-i18n="brand">Kiracı Kalkanı</strong>
+            <span data-i18n="brandSub">Türkiye kira asistanı</span>
           </div>
         </div>
 
-        <div class="language-switcher" aria-label="Language switcher">
+        <div class="language-switcher" aria-label="Dil seçimi">
           <span class="language-icon" aria-hidden="true">Aa</span>
           <button class="lang-option active" data-lang="tr">TR</button>
           <button class="lang-option" data-lang="en">EN</button>
           <button class="lang-apply" id="applyLanguage" data-i18n="applyLanguage">Uygula</button>
         </div>
 
-        <nav class="nav" aria-label="Main menu">
+        <nav class="nav" aria-label="Ana menü">
           <a href="#dashboard" class="active" data-i18n="navDashboard">Panel</a>
-          <a href="#calculator" data-i18n="navCalculator">Kira artisi</a>
+          <a href="#calculator" data-i18n="navCalculator">Kira artışı</a>
           <a href="#contract" data-i18n="navContract">Kontrat</a>
-          <a href="#deposit" data-i18n="navDeposit">Depozito</a>
-          <a href="#market" data-i18n="navMarket">Yakin kiralar</a>
+          <a href="#deposit" data-i18n="navDeposit">Kanıt kasası</a>
+          <a href="#market" data-i18n="navMarket">Yakın kiralar</a>
           <a href="#admin" data-i18n="navAdmin">Admin</a>
-          <a href="#packet" data-i18n="navPacket">Dosya paketi</a>
+          <a href="#assistant" data-i18n="navAssistant">Asistan</a>
         </nav>
 
         <div class="source-note">
           <strong data-i18n="dataStatusTitle">Veri durumu</strong>
-          <p data-i18n="dataStatusBody">Bu test surumu ornek verilerle calisir. Canli ilan verisi icin lisansli kaynak veya kullanici kaniti gerekir.</p>
+          <p data-i18n="dataStatusBody">Bu test sürümünde yakın kira verisi admin tarafından manuel girilir.</p>
         </div>
       </aside>
 
       <main>
         <section id="dashboard" class="hero-band">
           <div>
-            <p class="eyebrow" data-i18n="heroEyebrow">Kiraci odakli koruma paneli</p>
-            <h1 data-i18n="heroTitle">Kontrat, odeme, depozito ve cevre kira kanitlarini tek yerde takip edin.</h1>
-            <p class="hero-copy" data-i18n="heroCopy">
-              Zam talebinin makul olup olmadigini hesaplayin, belgeleri duzenleyin,
-              bolgedeki benzer ilanlari kanit olarak saklayin ve anlasmazlik dosyasi hazirlayin.
-            </p>
+            <p class="eyebrow" data-i18n="heroEyebrow">Kiracı koruma paneli</p>
+            <h1 data-i18n="heroTitle">Kira artışı, kontrat, kanıt ve emsal ilanları tek yerde yönetin.</h1>
+            <p class="hero-copy" data-i18n="heroCopy">Zam talebini hesaplayın, belgelerin durumunu görün, yakın kira kanıtlarını haritada takip edin ve cevap taslağı hazırlayın.</p>
+            <div class="hero-actions">
+              <a class="primary link-button" href="#calculator" data-i18n="heroPrimary">Zamı kontrol et</a>
+              <a class="secondary link-button" href="#admin" data-i18n="heroSecondary">Emsal kira ekle</a>
+            </div>
           </div>
           <div class="summary-grid">
-            <div class="metric">
-              <span data-i18n="metricRentLabel">Mevcut kira</span>
-              <strong id="metricRent">TL18.000</strong>
-            </div>
-            <div class="metric warn">
-              <span data-i18n="metricAskLabel">Talep edilen artis</span>
-              <strong id="metricAsk">TL29.000</strong>
-            </div>
-            <div class="metric ok">
-              <span data-i18n="metricMaxLabel">Hesaplanan ust sinir</span>
-              <strong id="metricMax">TL23.742</strong>
-            </div>
-            <div class="metric">
-              <span data-i18n="metricScoreLabel">Dosya skoru</span>
-              <strong id="caseScore">72%</strong>
-            </div>
+            <div class="metric"><span data-i18n="metricRentLabel">Mevcut kira</span><strong id="metricRent">TL18.000</strong></div>
+            <div class="metric warn"><span data-i18n="metricAskLabel">Talep edilen kira</span><strong id="metricAsk">TL29.000</strong></div>
+            <div class="metric ok"><span data-i18n="metricMaxLabel">Hesaplanan üst sınır</span><strong id="metricMax">TL23.742</strong></div>
+            <div class="metric"><span data-i18n="metricScoreLabel">Dosya skoru</span><strong id="caseScore">72%</strong></div>
           </div>
         </section>
 
+        <section class="status-strip" aria-label="Dosya durumu">
+          <div><span data-i18n="statusContract">Kontrat</span><strong id="contractStatus">Mevcut değil</strong></div>
+          <div><span data-i18n="statusEvidence">Kanıt</span><strong id="evidenceStatus">Mevcut değil</strong></div>
+          <div><span data-i18n="statusMarket">Kira verisi</span><strong id="marketDataStatus">Mevcut değil</strong></div>
+          <div><span data-i18n="statusAdmin">Admin</span><strong id="adminStatusMini">Giriş gerekli</strong></div>
+        </section>
+
         <section class="toolbar">
-          <label>
-            <span data-i18n="districtLabel">Il / ilce</span>
-            <select id="districtSelect">
-              <option value="Narlidere">Izmir / Narlidere</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="homeTypeLabel">Ev tipi</span>
-            <select id="homeType">
-              <option>2+1</option>
-              <option>1+1</option>
-              <option>3+1</option>
-            </select>
-          </label>
-          <button id="refreshMarket" class="icon-button" title="Refresh nearby rents">R</button>
+          <label><span data-i18n="districtLabel">İl / ilçe</span><select id="districtSelect"><option value="Narlidere">İzmir / Narlıdere</option></select></label>
+          <label><span data-i18n="homeTypeLabel">Ev tipi</span><select id="homeType"><option>2+1</option><option>1+1</option><option>3+1</option></select></label>
+          <button id="refreshMarket" class="icon-button" title="Yakın kiraları yenile">R</button>
         </section>
 
         <section id="calculator" class="panel two-col">
           <div>
-            <p class="eyebrow" data-i18n="calcEyebrow">Kira artisi</p>
-            <h2 data-i18n="calcTitle">Zam talebi kontrolu</h2>
+            <p class="eyebrow" data-i18n="calcEyebrow">Kira artışı</p>
+            <h2 data-i18n="calcTitle">Zam talebi kontrolü</h2>
             <div class="form-grid">
               <label><span data-i18n="currentRent">Mevcut kira</span><input id="currentRent" type="number" value="18000" min="0" /></label>
               <label><span data-i18n="requestedRent">Talep edilen kira</span><input id="requestedRent" type="number" value="29000" min="0" /></label>
-              <label><span data-i18n="cpiRate">12 aylik TUFE ortalamasi %</span><input id="cpiRate" type="number" value="31.9" step="0.1" min="0" /></label>
+              <label><span data-i18n="cpiRate">12 aylık TÜFE ortalaması %</span><input id="cpiRate" type="number" value="31.9" step="0.1" min="0" /></label>
               <label><span data-i18n="renewalDate">Yenileme tarihi</span><input id="renewalDate" type="date" value="2026-09-01" /></label>
             </div>
             <button id="calculateRent" class="primary" data-i18n="calculate">Hesapla</button>
@@ -112,135 +91,92 @@
 
         <section id="contract" class="panel">
           <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="contractEyebrow">Kontrat</p>
-              <h2 data-i18n="contractTitle">Kontrat ozeti ve risk isaretleri</h2>
-            </div>
-            <label class="upload">
-              <input id="contractUpload" type="file" accept=".pdf,image/*" />
-              <span data-i18n="uploadContract">Kontrat yukle</span>
-            </label>
+            <div><p class="eyebrow" data-i18n="contractEyebrow">Kontrat</p><h2 data-i18n="contractTitle">Kontrat özeti ve risk işaretleri</h2></div>
+            <label class="upload"><input id="contractUpload" type="file" accept=".pdf,image/*" /><span data-i18n="uploadContract">Kontrat yükle</span></label>
           </div>
           <div class="contract-layout">
-            <div class="document-preview">
-              <div class="doc-line w80"></div>
-              <div class="doc-line w60"></div>
-              <div class="doc-line w90"></div>
-              <div class="stamp" id="ocrStamp" data-i18n="ocrWaiting">OCR bekliyor</div>
-            </div>
+            <div class="document-preview"><div class="doc-line w80"></div><div class="doc-line w60"></div><div class="doc-line w90"></div><div class="stamp" id="ocrStamp" data-i18n="ocrWaiting">OCR bekliyor</div></div>
             <div class="risk-list" id="riskList"></div>
           </div>
         </section>
 
         <section id="deposit" class="panel two-col">
           <div>
-            <p class="eyebrow" data-i18n="depositEyebrow">Depozito ve odeme</p>
-            <h2 data-i18n="depositTitle">Kanit kasasi</h2>
+            <p class="eyebrow" data-i18n="depositEyebrow">Depozito ve ödeme</p>
+            <h2 data-i18n="depositTitle">Kanıt kasası</h2>
+            <div class="evidence-grid" id="evidenceGrid"></div>
             <div class="form-grid">
-              <label><span data-i18n="depositAmount">Depozito</span><input id="depositAmount" type="number" value="54000" /></label>
-              <label><span data-i18n="monthlyRent">Aylik kira</span><input id="depositRent" type="number" value="18000" /></label>
-              <label><span data-i18n="payDay">Son odeme gunu</span><input id="payDay" type="number" value="5" min="1" max="31" /></label>
-              <label>
-                <span data-i18n="evidenceType">Kanit tipi</span>
-                <select id="evidenceType">
-                  <option value="bank">Banka dekontu</option>
-                  <option value="message">Mesaj ekran goruntusu</option>
-                  <option value="photo">Ev fotografi</option>
-                  <option value="listing">Ilan linki</option>
-                </select>
-              </label>
+              <label><span data-i18n="evidenceType">Kanıt tipi</span><select id="evidenceType"><option value="bank">Banka dekontu</option><option value="message">Mesaj ekran görüntüsü</option><option value="photo">Ev fotoğrafı</option><option value="listing">İlan linki</option></select></label>
+              <label><span data-i18n="evidenceNote">Not</span><input id="evidenceNote" placeholder="Örn. Eylül kirası dekontu" /></label>
             </div>
-            <button id="addEvidence" class="secondary" data-i18n="addEvidence">Kanit ekle</button>
+            <button id="addEvidence" class="secondary" data-i18n="addEvidence">Kanıt ekle</button>
           </div>
           <div class="timeline" id="evidenceTimeline"></div>
         </section>
 
         <section id="market" class="panel">
           <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="marketEyebrow">Yakin kiralar</p>
-              <h2 data-i18n="marketTitle">Mahalle kira kanit haritasi</h2>
-            </div>
+            <div><p class="eyebrow" data-i18n="marketEyebrow">Yakın kiralar</p><h2 data-i18n="marketTitle">Mahalle kira kanıt haritası</h2></div>
             <div class="market-status" id="marketStatus" data-i18n="manualData">Admin verisi</div>
           </div>
           <div class="map-layout">
-            <div class="map-card" aria-label="Nearby rent map">
-              <div id="rentMap"></div>
-            </div>
-            <div class="listing-panel">
-              <div class="comp-summary">
-                <span data-i18n="medianRentLabel">Medyan yakin kira</span>
-                <strong id="medianRent">TL26.500</strong>
-                <p id="rentVerdict"></p>
-              </div>
-              <div id="listingList" class="listing-list"></div>
-            </div>
+            <div class="map-card" aria-label="Yakın kira haritası"><div id="rentMap"></div></div>
+            <div class="listing-panel"><div class="comp-summary"><span data-i18n="medianRentLabel">Medyan yakın kira</span><strong id="medianRent">TL0</strong><p id="rentVerdict"></p></div><div id="listingList" class="listing-list"></div></div>
           </div>
         </section>
 
         <section id="admin" class="panel">
           <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="adminEyebrow">Admin paneli</p>
-              <h2 data-i18n="adminTitle">Narlidere kira verisi girisi</h2>
-            </div>
-            <div class="market-status" id="adminStatus" data-i18n="adminLocked">Giris gerekli</div>
+            <div><p class="eyebrow" data-i18n="adminEyebrow">Admin paneli</p><h2 data-i18n="adminTitle">Kira verisi girişi</h2></div>
+            <div class="market-status" id="adminStatus" data-i18n="adminLocked">Giriş gerekli</div>
           </div>
-
           <div class="admin-layout">
             <form class="admin-login" id="adminLogin">
-              <label><span data-i18n="adminUser">Kullanici</span><input id="adminUser" autocomplete="username" value="admin" /></label>
-              <label><span data-i18n="adminPass">Sifre</span><input id="adminPass" type="password" autocomplete="current-password" /></label>
-              <button class="primary" type="submit" data-i18n="adminLoginBtn">Giris yap</button>
+              <label><span data-i18n="adminUser">Kullanıcı</span><input id="adminUser" autocomplete="username" value="admin" /></label>
+              <label><span data-i18n="adminPass">Şifre</span><input id="adminPass" type="password" autocomplete="current-password" /></label>
+              <button class="primary" type="submit" data-i18n="adminLoginBtn">Giriş yap</button>
             </form>
-
             <form class="admin-form hidden" id="adminForm">
               <div class="form-grid">
-                <label><span data-i18n="adminListingTitle">Ilan basligi</span><input id="adminTitleInput" placeholder="Narlidere 2+1" /></label>
+                <label><span data-i18n="adminListingTitle">İlan başlığı</span><input id="adminTitleInput" placeholder="Narlıdere 2+1" /></label>
                 <label><span data-i18n="adminRent">Kira</span><input id="adminRentInput" type="number" min="0" placeholder="25000" /></label>
                 <label><span data-i18n="adminSize">m2</span><input id="adminSizeInput" type="number" min="0" placeholder="90" /></label>
-                <label><span data-i18n="adminAge">Bina yasi</span><input id="adminAgeInput" type="number" min="0" placeholder="15" /></label>
-                <label><span data-i18n="adminNeighborhood">Mahalle</span><input id="adminNeighborhoodInput" placeholder="Narlidere veya Sahilevleri" /></label>
-                <label class="full-row"><span data-i18n="adminAddress">Adres</span><input id="adminAddressInput" placeholder="Adres yazin; sehir/ilce ile daha iyi sonuc verir" /></label>
+                <label><span data-i18n="adminAge">Bina yaşı</span><input id="adminAgeInput" type="number" min="0" placeholder="15" /></label>
+                <label><span data-i18n="adminNeighborhood">Mahalle</span><input id="adminNeighborhoodInput" placeholder="Narlıdere, Sahilevleri..." /></label>
+                <label class="full-row"><span data-i18n="adminAddress">Adres</span><input id="adminAddressInput" placeholder="Adres yazın; mahalle, ilçe ve şehir ile daha iyi sonuç verir" /></label>
                 <label><span data-i18n="adminLat">Enlem</span><input id="adminLatInput" type="number" step="0.000001" placeholder="38.389700" /></label>
                 <label><span data-i18n="adminLng">Boylam</span><input id="adminLngInput" type="number" step="0.000001" placeholder="27.014400" /></label>
-                <label><span data-i18n="adminSource">Kaynak</span><input id="adminSourceInput" placeholder="Kullanici kaniti" /></label>
-                <label><span data-i18n="adminProof">Kanit</span><input id="adminProofInput" placeholder="Ilan linki veya ekran goruntusu" /></label>
+                <label><span data-i18n="adminSource">Kaynak</span><input id="adminSourceInput" placeholder="Kullanıcı kanıtı" /></label>
+                <label><span data-i18n="adminProof">Kanıt</span><input id="adminProofInput" placeholder="İlan linki veya ekran görüntüsü" /></label>
               </div>
               <div class="admin-actions">
                 <button class="primary" type="submit" data-i18n="saveListing">Kaydet</button>
                 <button class="secondary" type="button" id="geocodeAddress" data-i18n="findAddress">Adresi haritada bul</button>
-                <button class="secondary" type="button" id="placeDraggablePin" data-i18n="placeDraggablePin">Suruklenebilir pin koy</button>
+                <button class="secondary" type="button" id="placeDraggablePin" data-i18n="placeDraggablePin">Sürüklenebilir pin koy</button>
                 <button class="secondary" type="button" id="useMapCenter" data-i18n="useMapCenter">Harita merkezini kullan</button>
-                <button class="secondary hidden" type="button" id="cancelEdit" data-i18n="cancelEdit">Duzenlemeyi iptal et</button>
-                <button class="secondary" type="button" id="adminLogout" data-i18n="adminLogout">Cikis</button>
+                <button class="secondary hidden" type="button" id="cancelEdit" data-i18n="cancelEdit">Düzenlemeyi iptal et</button>
+                <button class="secondary" type="button" id="adminLogout" data-i18n="adminLogout">Çıkış</button>
               </div>
-              <p class="admin-hint" data-i18n="mapAdminHint">Admin girişi aktifken haritaya tiklayarak konum alanlarini doldurabilirsiniz.</p>
+              <p class="admin-hint" data-i18n="mapAdminHint">Admin girişi aktifken haritaya tıklayarak veya pini sürükleyerek konum alanlarını doldurabilirsiniz.</p>
             </form>
           </div>
         </section>
 
-        <section id="packet" class="panel two-col">
+        <section id="assistant" class="panel two-col">
           <div>
-            <p class="eyebrow" data-i18n="packetEyebrow">Dosya paketi</p>
-            <h2 data-i18n="packetTitle">Arabuluculuk / avukat hazirligi</h2>
+            <p class="eyebrow" data-i18n="assistantEyebrow">Asistan</p>
+            <h2 data-i18n="assistantTitle">Cevap taslağı hazırlayın</h2>
             <div class="checklist" id="packetChecklist"></div>
           </div>
           <div class="assistant-box">
-            <h3 data-i18n="assistantTitle">Asistan sorusu</h3>
             <textarea id="questionBox"></textarea>
-            <button id="askAssistant" class="primary" data-i18n="draftAnswer">Yanit taslagi olustur</button>
+            <button id="askAssistant" class="primary" data-i18n="draftAnswer">Yanıt taslağı oluştur</button>
             <div id="assistantAnswer" class="answer"></div>
           </div>
         </section>
       </main>
     </div>
-
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="./app.js"></script>
   </body>
 </html>
