@@ -84,6 +84,9 @@ const i18n = {
     scannerConfidence: "Okunabilirlik",
     scannerStatus: "Tarama durumu",
     addEvidence: "Kanıt ekle",
+    deleteEvidence: "Sil",
+    evidenceDeleted: "Kanıt silindi.",
+    evidenceDeleteFailed: "Kanıt silinemedi; lütfen tekrar deneyin.",
     bank: "Banka dekontu",
     message: "Mesaj ekran görüntüsü",
     photo: "Ev fotoğrafı",
@@ -267,6 +270,9 @@ const i18n = {
     scannerConfidence: "Readability",
     scannerStatus: "Scan status",
     addEvidence: "Add evidence",
+    deleteEvidence: "Delete",
+    evidenceDeleted: "Evidence deleted.",
+    evidenceDeleteFailed: "Evidence could not be deleted; please try again.",
     bank: "Bank receipt",
     message: "Message screenshot",
     photo: "Home photo",
@@ -616,6 +622,33 @@ async function createExtractionJob(item) {
   await loadRemoteEvidence();
 }
 
+async function deleteEvidence(index) {
+  const items = readEvidence();
+  const item = items[index];
+  if (!item) return;
+
+  if (supabaseClient && currentUser && item.remoteId) {
+    const { error } = await supabaseClient
+      .from("evidence_items")
+      .delete()
+      .eq("id", item.remoteId)
+      .eq("user_id", currentUser.id);
+    if (error) {
+      $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("reviewRequired")}</strong><p>${tr("evidenceDeleteFailed")}</p></article>`;
+      return;
+    }
+  }
+
+  if (supabaseClient && currentUser && item.storagePath) {
+    await supabaseClient.storage.from(EVIDENCE_BUCKET).remove([item.storagePath]);
+  }
+
+  items.splice(index, 1);
+  writeJson(EVIDENCE_KEY, items);
+  $("#evidenceAnalysis").innerHTML = `<article class="analysis-card ok"><strong>${tr("available")}</strong><p>${tr("evidenceDeleted")}</p></article>`;
+  renderEvidence();
+}
+
 async function loadRemoteEvidence() {
   if (!supabaseClient || !currentUser) return;
   const { data, error } = await supabaseClient
@@ -916,11 +949,14 @@ function renderEvidence() {
   }).join("");
 
   $("#evidenceTimeline").innerHTML = evidence.length
-    ? evidence.map((item) => `<article class="timeline-item">
+    ? evidence.map((item, index) => `<article class="timeline-item">
         ${item.previewUrl ? `<img class="evidence-thumb" src="${item.previewUrl}" alt="">` : ""}
-        <strong>${tr(item.type)} · ${statusLabel(item.status)}</strong>
-        <p>${escapeHtml(item.summary || item.note || tr(item.type))}</p>
-        <small>${escapeHtml(item.fileName || "")} ${item.fileSizeLabel ? `· ${escapeHtml(item.fileSizeLabel)}` : ""} · ${new Date(item.createdAt).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</small>
+        <div>
+          <strong>${tr(item.type)} · ${statusLabel(item.status)}</strong>
+          <p>${escapeHtml(item.summary || item.note || tr(item.type))}</p>
+          <small>${escapeHtml(item.fileName || "")} ${item.fileSizeLabel ? `· ${escapeHtml(item.fileSizeLabel)}` : ""} · ${new Date(item.createdAt).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</small>
+        </div>
+        <button class="danger evidence-delete" type="button" data-delete-evidence="${index}">${tr("deleteEvidence")}</button>
       </article>`).join("")
     : `<article class="timeline-item empty"><strong>${tr("unavailable")}</strong><p>${lang === "tr" ? "Henüz kanıt eklenmedi." : "No evidence has been added yet."}</p></article>`;
 
@@ -1338,6 +1374,11 @@ function bindEvents() {
     if (!button) return;
     $("#questionBox").value = button.dataset.prompt;
     $("#questionBox").focus();
+  });
+  $("#evidenceTimeline").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-evidence]");
+    if (!button) return;
+    deleteEvidence(Number(button.dataset.deleteEvidence));
   });
   $("#refreshMarket").addEventListener("click", renderMarket);
   $$(".lang-option").forEach((button) => {

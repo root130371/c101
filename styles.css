@@ -836,12 +836,20 @@ h2 {
 
 .timeline-item {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   column-gap: 12px;
+  align-items: start;
 }
 
 .timeline-item .evidence-thumb {
   grid-row: span 3;
+}
+
+.evidence-delete {
+  min-height: 32px;
+  padding: 0 10px;
+  align-self: center;
+  font-size: 12px;
 }
 
 .toolbar {
@@ -1589,7 +1597,8 @@ textarea {
   }
 
   .listing-main,
-  .listing-price-row {
+  .listing-price-row,
+  .timeline-item {
     grid-template-columns: 1fr;
   }
 
