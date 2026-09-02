@@ -100,6 +100,7 @@ const i18n = {
     uploadLocal: "Dosya bu cihazda kaydedildi; Supabase bucket hazır olunca kalıcı yükleme yapılacak.",
     uploadNeedsLogin: "Kalıcı Supabase yükleme için kullanıcı girişi gerekir; dosya bu cihazda geçici kanıt olarak tutuldu.",
     uploadRemote: "Dosya Supabase Storage'a yüklendi.",
+    extractionRemote: "AI analizi tamamlandı.",
     uploadFailedLocal: "Supabase yükleme başarısız oldu; dosya bu cihazda geçici kanıt olarak tutuldu.",
     accountEyebrow: "Hesap",
     accountTitle: "Kalıcı kanıt yükleme",
@@ -282,6 +283,7 @@ const i18n = {
     uploadLocal: "File was saved on this device; permanent upload will work once the Supabase bucket is ready.",
     uploadNeedsLogin: "Permanent Supabase upload requires user login; the file was kept as temporary evidence on this device.",
     uploadRemote: "File uploaded to Supabase Storage.",
+    extractionRemote: "AI analysis completed.",
     uploadFailedLocal: "Supabase upload failed; file was kept as temporary evidence on this device.",
     accountEyebrow: "Account",
     accountTitle: "Permanent evidence upload",
@@ -604,6 +606,14 @@ async function createExtractionJob(item) {
     status: "queued",
     provider: "pending_openai"
   });
+  const { data, error } = await supabaseClient.functions.invoke("analyze-evidence", {
+    body: { evidence_id: item.remoteId }
+  });
+  if (error || !data?.extraction) return;
+  item.status = data.status || item.status;
+  item.confidence = data.extraction.confidence ?? item.confidence;
+  item.summary = `${lang === "tr" ? data.extraction.summary_tr : data.extraction.summary_en} ${tr("extractionRemote")}`;
+  await loadRemoteEvidence();
 }
 
 async function loadRemoteEvidence() {

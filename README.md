@@ -59,7 +59,31 @@ The Edge Function skeleton lives here:
 supabase/functions/analyze-evidence/index.ts
 ```
 
-It intentionally does not call OpenAI yet. It returns a clear configuration error until `OPENAI_API_KEY` is added as a Supabase Edge Function secret.
+It calls OpenAI only from the Supabase Edge Function. Never put `OPENAI_API_KEY` in `app.js`, GitHub Pages, or any frontend file.
+
+Add the secret from the project folder after installing/logging into the Supabase CLI:
+
+```powershell
+cd C:\Users\alpha\OneDrive\Desktop\c101
+supabase link --project-ref gxqcacrtntnfnakitdaf
+supabase secrets set OPENAI_API_KEY=sk-your-real-key-here
+supabase functions deploy analyze-evidence
+```
+
+Optional model override:
+
+```powershell
+supabase secrets set OPENAI_MODEL=gpt-5-mini
+```
+
+You can also add it in Supabase Dashboard:
+
+1. Open your Supabase project.
+2. Go to `Edge Functions`.
+3. Open `Secrets`.
+4. Add a secret named exactly `OPENAI_API_KEY`.
+5. Paste the OpenAI API key as the value.
+6. Deploy or redeploy `analyze-evidence`.
 
 ## Data Note
 
