@@ -1,0 +1,24 @@
+{
+  "name": "c101",
+  "version": "1.0.0",
+  "description": "Mobile-first prototype for a Turkey-focused tenant assistant.",
+  "main": "app.js",
+  "scripts": {
+    "supabase:version": "supabase --version",
+    "supabase:link": "supabase link --project-ref gxqcacrtntnfnakitdaf",
+    "deploy:function": "supabase functions deploy analyze-evidence"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/root130371/c101.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/root130371/c101/issues"
+  },
+  "homepage": "https://github.com/root130371/c101#readme",
+  "devDependencies": {
+    "supabase": "^2.116.0"
+  }
+}
