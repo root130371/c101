@@ -30,11 +30,11 @@
           </div>
           <label><span data-i18n="emailLabel">E-posta</span><input id="welcomeEmail" type="email" autocomplete="email" /></label>
           <label><span data-i18n="passwordLabel">Şifre</span><input id="welcomePassword" type="password" autocomplete="current-password" /></label>
+          <p class="auth-message" id="welcomeMessage" data-i18n="welcomeHint">Kalıcı yükleme için hesap önerilir; demo modunda veriler bu tarayıcıda kalır.</p>
           <button class="primary" type="button" id="welcomeSubmit" data-i18n="signIn">Giriş yap</button>
           <button class="text-button" type="button" id="welcomeForgot" data-i18n="forgotPassword">Şifremi unuttum</button>
           <div class="or-line"><span data-i18n="orContinue">veya</span></div>
           <button class="secondary" type="button" id="continueGuest" data-i18n="continueGuest">Hesap açmadan devam et</button>
-          <p class="admin-hint" id="welcomeMessage" data-i18n="welcomeHint">Kalıcı yükleme için hesap önerilir; demo modunda veriler bu tarayıcıda kalır.</p>
         </div>
       </div>
     </section>
@@ -130,13 +130,13 @@
                 <button class="secondary" type="button" id="signUpButton" data-i18n="signUp">Kayıt ol</button>
                 <button class="text-button" type="button" id="resetPasswordButton" data-i18n="forgotPassword">Şifremi unuttum</button>
               </div>
+              <p class="auth-message" id="authMessage" data-i18n="authHint">Kanıtları kalıcı saklamak için giriş yapın. Giriş yoksa dosyalar sadece bu tarayıcıda geçici kalır.</p>
             </form>
             <div id="authSession" class="auth-session hidden">
               <strong id="authUserEmail"></strong>
               <p data-i18n="authSessionText">Kanıt dosyaları bu hesap altında Supabase Storage'a kalıcı olarak yüklenecek.</p>
               <button class="secondary" type="button" id="signOutButton" data-i18n="signOut">Çıkış yap</button>
             </div>
-            <p class="admin-hint" id="authMessage" data-i18n="authHint">Kanıtları kalıcı saklamak için giriş yapın. Giriş yoksa dosyalar sadece bu tarayıcıda geçici kalır.</p>
           </div>
         </section>
 

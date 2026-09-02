@@ -113,6 +113,9 @@ const i18n = {
     authHint: "Kanıtları kalıcı saklamak için giriş yapın. Giriş yoksa dosyalar sadece bu tarayıcıda geçici kalır.",
     authSessionText: "Kanıt dosyaları bu hesap altında Supabase Storage'a kalıcı olarak yüklenecek.",
     authMissingFields: "E-posta ve şifre girin.",
+    authInvalidEmail: "Geçerli bir e-posta adresi girin.",
+    authShortPassword: "Şifre en az 6 karakter olmalı.",
+    authWorking: "İşlem yapılıyor...",
     authSignUpSent: "Kayıt isteği gönderildi. Supabase e-posta onayı istiyorsa gelen kutunuzu kontrol edin.",
     authSignedIn: "Giriş başarılı.",
     authSignedOut: "Çıkış yapıldı.",
@@ -292,6 +295,9 @@ const i18n = {
     authHint: "Sign in to store evidence permanently. Without login, files stay temporary in this browser.",
     authSessionText: "Evidence files will be permanently uploaded to Supabase Storage under this account.",
     authMissingFields: "Enter email and password.",
+    authInvalidEmail: "Enter a valid email address.",
+    authShortPassword: "Password must be at least 6 characters.",
+    authWorking: "Working...",
     authSignUpSent: "Signup request sent. If Supabase requires email confirmation, check your inbox.",
     authSignedIn: "Signed in.",
     authSignedOut: "Signed out.",
@@ -700,9 +706,35 @@ async function deleteRemoteRentListing(item) {
   await supabaseClient.from("rent_listings").delete().eq("id", item.remoteId);
 }
 
-function setAuthMessage(message) {
-  $("#authMessage").textContent = message;
-  $("#welcomeMessage").textContent = message;
+function setAuthMessage(message, scope = "all", tone = "info") {
+  const targets = scope === "welcome"
+    ? ["#welcomeMessage"]
+    : scope === "account"
+      ? ["#authMessage"]
+      : ["#authMessage", "#welcomeMessage"];
+  targets.forEach((selector) => {
+    const node = $(selector);
+    node.textContent = message;
+    node.classList.remove("error", "success", "info");
+    node.classList.add(tone);
+  });
+}
+
+function setAuthBusy(scope, busy) {
+  const selectors = scope === "welcome"
+    ? ["#welcomeSubmit", "#welcomeForgot", "#continueGuest", "#welcomeLoginTab", "#welcomeSignupTab"]
+    : ["#signInButton", "#signUpButton", "#resetPasswordButton"];
+  selectors.forEach((selector) => {
+    const node = $(selector);
+    if (node) node.disabled = busy;
+  });
+}
+
+function validateAuthInput(email, password, mode) {
+  if (!email || !password) return tr("authMissingFields");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return tr("authInvalidEmail");
+  if (mode === "signup" && password.length < 6) return tr("authShortPassword");
+  return "";
 }
 
 function renderAuthState() {
@@ -733,6 +765,7 @@ function renderWelcomeGate() {
   const shouldShow = !currentUser && localStorage.getItem(GUEST_KEY) !== "1";
   $("#welcomeGate").classList.toggle("hidden", !shouldShow);
   $("#welcomeSubmit").textContent = tr(welcomeAuthMode === "login" ? "signIn" : "signUp");
+  $("#welcomePassword").autocomplete = welcomeAuthMode === "login" ? "current-password" : "new-password";
   $$(".auth-tabs button").forEach((button) => {
     button.classList.toggle("active", button.dataset.authMode === welcomeAuthMode);
   });
@@ -740,58 +773,88 @@ function renderWelcomeGate() {
 
 async function signIn(scope = "account") {
   if (!supabaseClient) {
-    setAuthMessage(tr("authUnavailable"));
+    setAuthMessage(tr("authUnavailable"), scope, "error");
     return;
   }
   const { email, password } = credentials(scope);
-  if (!email || !password) {
-    setAuthMessage(tr("authMissingFields"));
+  const validation = validateAuthInput(email, password, "login");
+  if (validation) {
+    setAuthMessage(validation, scope, "error");
     return;
   }
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (!error) localStorage.removeItem(GUEST_KEY);
-  setAuthMessage(error ? tr("authError", error.message) : tr("authSignedIn"));
+  setAuthBusy(scope, true);
+  setAuthMessage(tr("authWorking"), scope, "info");
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (!error) localStorage.removeItem(GUEST_KEY);
+    setAuthMessage(error ? tr("authError", error.message) : tr("authSignedIn"), scope, error ? "error" : "success");
+  } catch (error) {
+    setAuthMessage(tr("authError", error.message || "Network error"), scope, "error");
+  } finally {
+    setAuthBusy(scope, false);
+  }
 }
 
 async function signUp(scope = "account") {
   if (!supabaseClient) {
-    setAuthMessage(tr("authUnavailable"));
+    setAuthMessage(tr("authUnavailable"), scope, "error");
     return;
   }
   const { email, password } = credentials(scope);
-  if (!email || !password) {
-    setAuthMessage(tr("authMissingFields"));
+  const validation = validateAuthInput(email, password, "signup");
+  if (validation) {
+    setAuthMessage(validation, scope, "error");
     return;
   }
-  const { error } = await supabaseClient.auth.signUp({ email, password });
-  setAuthMessage(error ? tr("authError", error.message) : tr("authSignUpSent"));
+  setAuthBusy(scope, true);
+  setAuthMessage(tr("authWorking"), scope, "info");
+  try {
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    setAuthMessage(error ? tr("authError", error.message) : tr("authSignUpSent"), scope, error ? "error" : "success");
+  } catch (error) {
+    setAuthMessage(tr("authError", error.message || "Network error"), scope, "error");
+  } finally {
+    setAuthBusy(scope, false);
+  }
 }
 
 async function signOut() {
   if (!supabaseClient) return;
   const { error } = await supabaseClient.auth.signOut();
-  setAuthMessage(error ? tr("authError", error.message) : tr("authSignedOut"));
+  setAuthMessage(error ? tr("authError", error.message) : tr("authSignedOut"), "all", error ? "error" : "success");
 }
 
 async function resetPassword(scope = "account") {
   if (!supabaseClient) {
-    setAuthMessage(tr("authUnavailable"));
+    setAuthMessage(tr("authUnavailable"), scope, "error");
     return;
   }
   const { email } = credentials(scope);
   if (!email) {
-    setAuthMessage(tr("authMissingFields"));
+    setAuthMessage(tr("authMissingFields"), scope, "error");
     return;
   }
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href.split("#")[0]
-  });
-  setAuthMessage(error ? tr("authError", error.message) : tr("resetSent"));
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setAuthMessage(tr("authInvalidEmail"), scope, "error");
+    return;
+  }
+  setAuthBusy(scope, true);
+  setAuthMessage(tr("authWorking"), scope, "info");
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href.split("#")[0]
+    });
+    setAuthMessage(error ? tr("authError", error.message) : tr("resetSent"), scope, error ? "error" : "success");
+  } catch (error) {
+    setAuthMessage(tr("authError", error.message || "Network error"), scope, "error");
+  } finally {
+    setAuthBusy(scope, false);
+  }
 }
 
 function continueAsGuest() {
   localStorage.setItem(GUEST_KEY, "1");
-  setAuthMessage(tr("guestMode"));
+  setAuthMessage(tr("guestMode"), "all", "info");
   renderWelcomeGate();
 }
 
@@ -1217,6 +1280,7 @@ function bindEvents() {
   $$(".auth-tabs button").forEach((button) => {
     button.addEventListener("click", () => {
       welcomeAuthMode = button.dataset.authMode;
+      setAuthMessage(tr("welcomeHint"), "welcome", "info");
       renderWelcomeGate();
     });
   });
