@@ -1297,7 +1297,103 @@ textarea {
 
 .assistant-box {
   display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(168, 85, 247, 0.12), transparent 34%),
+    linear-gradient(180deg, #fff, #fbf7ff);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.prompt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prompt-chips button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.prompt-chips button:hover {
+  border-color: var(--violet);
+  background: #ede9fe;
+}
+
+.assistant-compose {
+  display: grid;
+  gap: 10px;
+}
+
+.assistant-compose textarea {
+  min-height: 148px;
+  border-color: #ddd6fe;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.03);
+}
+
+.assistant-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.assistant-response {
+  display: grid;
   gap: 12px;
+}
+
+.assistant-response-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5b21b6;
+}
+
+.assistant-response-head i {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #ede9fe;
+  font-size: 19px;
+}
+
+.assistant-response section {
+  padding: 12px;
+  border: 1px solid #e9d5ff;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.assistant-response span {
+  display: block;
+  margin-bottom: 5px;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.assistant-response p {
+  margin: 0;
+}
+
+.assistant-note {
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
 }
 
 .account-layout,

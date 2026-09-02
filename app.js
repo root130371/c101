@@ -172,7 +172,17 @@ const i18n = {
     assistantTitle: "Cevap taslağı hazırlayın",
     questionDefault: "Ev sahibim kiranın 29.000 TL olması gerektiğini söylüyor. Nasıl cevap hazırlamalıyım?",
     draftAnswer: "Yanıt taslağı oluştur",
+    copyDraft: "Kopyala",
+    copiedDraft: "Kopyalandı",
     assistantAnswerTitle: "Taslak yaklaşım",
+    assistantSummary: "Durum özeti",
+    assistantEvidence: "Kullanılacak kanıtlar",
+    assistantReplySection: "Yanıt taslağı",
+    assistantRiskNote: "Not",
+    chipRentIncrease: "Zam talebine cevap",
+    chipDeposit: "Depozito kanıtı",
+    chipMarketProof: "Emsal kira ile savun",
+    chipContractRisk: "Kontrat riskini sor",
     ready: "Hazır",
     missing: "Eksik / bekliyor",
     contractSummary: "Kontrat özeti",
@@ -341,7 +351,17 @@ const i18n = {
     assistantTitle: "Prepare a reply draft",
     questionDefault: "My landlord says the rent should be 29,000 TL. How should I prepare a reply?",
     draftAnswer: "Create reply draft",
+    copyDraft: "Copy",
+    copiedDraft: "Copied",
     assistantAnswerTitle: "Draft approach",
+    assistantSummary: "Situation summary",
+    assistantEvidence: "Evidence to use",
+    assistantReplySection: "Reply draft",
+    assistantRiskNote: "Note",
+    chipRentIncrease: "Reply to rent increase",
+    chipDeposit: "Deposit proof",
+    chipMarketProof: "Use market proof",
+    chipContractRisk: "Ask about contract risk",
     ready: "Ready",
     missing: "Missing / pending",
     contractSummary: "Contract summary",
@@ -923,6 +943,18 @@ function renderChecklist() {
   $("#packetChecklist").innerHTML = items.map(([title, done]) => `<div class="check ${done ? "done" : ""}"><span>${done ? "✓" : "!"}</span>${title}</div>`).join("");
 }
 
+function renderPromptChips() {
+  const prompts = [
+    ["chipRentIncrease", tr("questionDefault")],
+    ["chipDeposit", lang === "tr" ? "Depozitomu korumak için hangi kanıtları hazırlamalıyım?" : "Which evidence should I prepare to protect my deposit?"],
+    ["chipMarketProof", lang === "tr" ? "Yakın kira kayıtlarını kullanarak nasıl daha güçlü cevap verebilirim?" : "How can I use nearby rent records to make a stronger reply?"],
+    ["chipContractRisk", lang === "tr" ? "Kontratımdaki riskli maddeleri nasıl sormalıyım?" : "How should I ask about risky clauses in my contract?"]
+  ];
+  $("#promptChips").innerHTML = prompts
+    .map(([label, prompt]) => `<button type="button" data-prompt="${escapeHtml(prompt)}">${tr(label)}</button>`)
+    .join("");
+}
+
 function updateStatuses() {
   const hasContract = Boolean(readJson(CONTRACT_KEY, null));
   const hasEvidence = readEvidence().some((item) => item.status === "available");
@@ -1115,11 +1147,37 @@ function assistantReply() {
   const evidenceCount = readEvidence().length;
   const listingCount = readRentData().length;
   const hasContract = Boolean(readJson(CONTRACT_KEY, null));
-  const answer = lang === "tr"
-    ? `Taslak yaklaşım: Mevcut kiranız ${money(current)}, talep edilen kira ${money(requested)}. ${cpi}% TÜFE ortalamasına göre hesaplanan üst sınır ${money(max)}. Kontrat durumu: ${tr(hasContract ? "available" : "unavailable")}. Kanıt sayısı: ${evidenceCount}. Yakın kira kaydı: ${listingCount}. Cevabınızda hesaplamayı, ödeme kanıtlarını ve emsal kira kayıtlarını ayrı maddeler halinde belirtin. Bu hukuki danışmanlık değildir; yüksek riskli durumda avukat görüşü alın.`
-    : `Draft approach: Your current rent is ${money(current)}, and the requested rent is ${money(requested)}. With a ${cpi}% CPI average, the calculated ceiling is ${money(max)}. Contract status: ${tr(hasContract ? "available" : "unavailable")}. Evidence items: ${evidenceCount}. Nearby rent records: ${listingCount}. In your reply, separate the calculation, payment proof, and comparable rent records into clear points. This is not legal advice; get a lawyer's view in high-risk situations.`;
-  $("#assistantAnswer").innerHTML = `<strong>${tr("assistantAnswerTitle")}</strong><p>${answer}</p>`;
+  const over = requested > max;
+  const summary = lang === "tr"
+    ? `Mevcut kira ${money(current)}, talep edilen kira ${money(requested)}. ${cpi}% TÜFE ortalamasına göre hesaplanan üst sınır ${money(max)}.`
+    : `Current rent is ${money(current)}, requested rent is ${money(requested)}. With a ${cpi}% CPI average, the calculated ceiling is ${money(max)}.`;
+  const evidence = lang === "tr"
+    ? `Kontrat: ${tr(hasContract ? "available" : "unavailable")}. Kanıt sayısı: ${evidenceCount}. Yakın kira kaydı: ${listingCount}.`
+    : `Contract: ${tr(hasContract ? "available" : "unavailable")}. Evidence items: ${evidenceCount}. Nearby rent records: ${listingCount}.`;
+  const reply = lang === "tr"
+    ? `Merhaba, kira artış talebinizi aldım. Hesapladığım üst sınır ${money(max)} görünüyor; talep edilen ${money(requested)} ${over ? "bu sınırın üzerinde" : "bu sınır içinde"} kalıyor. Değerlendirme için ödeme kanıtlarımı, kontratımı ve yakın kira kayıtlarını ayrı olarak paylaşabilirim.`
+    : `Hello, I received your rent increase request. My calculated ceiling is ${money(max)}; the requested ${money(requested)} appears ${over ? "above that level" : "within that level"}. I can share payment proof, my contract, and nearby rent records separately for review.`;
+  const note = lang === "tr"
+    ? "Bu taslak hukuki danışmanlık değildir; yüksek riskli durumda uzman görüşü alın."
+    : "This draft is not legal advice; get expert advice for high-risk situations.";
+  $("#assistantAnswer").innerHTML = `<article class="assistant-response">
+    <div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${tr("assistantAnswerTitle")}</strong></div>
+    <section><span>${tr("assistantSummary")}</span><p>${summary}</p></section>
+    <section><span>${tr("assistantEvidence")}</span><p>${evidence}</p></section>
+    <section><span>${tr("assistantReplySection")}</span><p>${reply}</p></section>
+    <section class="assistant-note"><span>${tr("assistantRiskNote")}</span><p>${note}</p></section>
+  </article>`;
   renderChecklist();
+}
+
+async function copyAssistantDraft() {
+  const text = $("#assistantAnswer").innerText.trim();
+  if (!text) return;
+  await navigator.clipboard?.writeText(text);
+  $("#copyAssistant").textContent = tr("copiedDraft");
+  window.setTimeout(() => {
+    $("#copyAssistant").textContent = tr("copyDraft");
+  }, 1400);
 }
 
 function applyLanguage() {
@@ -1131,6 +1189,8 @@ function applyLanguage() {
   });
   renderEvidenceOptions();
   $("#questionBox").value = tr("questionDefault");
+  $("#copyAssistant").textContent = tr("copyDraft");
+  renderPromptChips();
   $$(".lang-option").forEach((button) => {
     button.classList.toggle("active", button.dataset.lang === lang);
     button.classList.remove("selected");
@@ -1198,6 +1258,13 @@ function bindEvents() {
     }
   });
   $("#askAssistant").addEventListener("click", assistantReply);
+  $("#copyAssistant").addEventListener("click", copyAssistantDraft);
+  $("#promptChips").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-prompt]");
+    if (!button) return;
+    $("#questionBox").value = button.dataset.prompt;
+    $("#questionBox").focus();
+  });
   $("#refreshMarket").addEventListener("click", renderMarket);
   $$(".lang-option").forEach((button) => {
     button.addEventListener("click", () => {

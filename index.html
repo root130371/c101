@@ -253,8 +253,14 @@
             <div class="checklist" id="packetChecklist"></div>
           </div>
           <div class="assistant-box">
-            <textarea id="questionBox"></textarea>
-            <button id="askAssistant" class="primary" data-i18n="draftAnswer">Yanıt taslağı oluştur</button>
+            <div class="prompt-chips" id="promptChips" aria-label="Asistan önerileri"></div>
+            <div class="assistant-compose">
+              <textarea id="questionBox"></textarea>
+              <div class="assistant-actions">
+                <button id="askAssistant" class="primary" data-i18n="draftAnswer">Yanıt taslağı oluştur</button>
+                <button id="copyAssistant" class="secondary" type="button" data-i18n="copyDraft">Kopyala</button>
+              </div>
+            </div>
             <div id="assistantAnswer" class="answer"></div>
           </div>
         </section>
