@@ -852,6 +852,20 @@ h2 {
   font-size: 12px;
 }
 
+.evidence-actions {
+  display: flex;
+  gap: 7px;
+  align-self: center;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
+.evidence-action {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 .toolbar {
   display: flex;
   align-items: end;
@@ -1608,6 +1622,10 @@ textarea {
 
   .scanner-cta {
     justify-self: start;
+  }
+
+  .evidence-actions {
+    justify-content: start;
   }
 
   .toolbar,
