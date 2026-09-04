@@ -10,7 +10,7 @@ Mobile-first prototype for a Turkey-focused tenant assistant.
 - Local image analysis for evidence photos: preview, dimensions, file size, and quality status.
 - Nearby rent comparison map populated from admin-entered Narlıdere data.
 - Interactive OpenStreetMap view with pan/zoom, address lookup, map-click coordinate capture, and draggable admin pin placement.
-- Assistant draft that uses current rent, requested rent, evidence count, contract status, and nearby listing count.
+- Authenticated AI assistant that answers tenant questions using the current rent calculation, evidence summaries, contract status, nearby listing data, and saved chat history.
 
 ## Backend Foundation
 
@@ -51,15 +51,16 @@ Evidence status rules:
 
 The current static app supports Supabase Auth. Logged-in users upload evidence files into the private `evidence` bucket under their own user ID. A matching `evidence_items` row is created, and an `extraction_jobs` row is queued for the future AI processor.
 
-## AI Extraction
+## AI Functions
 
-The Edge Function skeleton lives here:
+The Edge Functions live here:
 
 ```text
 supabase/functions/analyze-evidence/index.ts
+supabase/functions/ask-assistant/index.ts
 ```
 
-It calls OpenAI only from the Supabase Edge Function. Never put `OPENAI_API_KEY` in `app.js`, GitHub Pages, or any frontend file.
+They call OpenAI only from Supabase Edge Functions. Never put `OPENAI_API_KEY` in `app.js`, GitHub Pages, or any frontend file.
 
 Add the secret from the project folder after installing/logging into the Supabase CLI:
 
@@ -68,12 +69,14 @@ cd C:\Users\alpha\OneDrive\Desktop\c101
 supabase link --project-ref gxqcacrtntnfnakitdaf
 supabase secrets set OPENAI_API_KEY=sk-your-real-key-here
 supabase functions deploy analyze-evidence
+supabase functions deploy ask-assistant
 ```
 
 Optional model override:
 
 ```powershell
 supabase secrets set OPENAI_MODEL=gpt-5-mini
+supabase secrets set OPENAI_ASSISTANT_MODEL=gpt-5-mini
 ```
 
 You can also add it in Supabase Dashboard:
@@ -83,7 +86,15 @@ You can also add it in Supabase Dashboard:
 3. Open `Secrets`.
 4. Add a secret named exactly `OPENAI_API_KEY`.
 5. Paste the OpenAI API key as the value.
-6. Deploy or redeploy `analyze-evidence`.
+6. Deploy or redeploy `analyze-evidence` and `ask-assistant`.
+
+Assistant behavior:
+
+- Signed-in tenants get OpenAI-backed answers from `ask-assistant`.
+- User and assistant messages are saved in `public.assistant_messages`.
+- The assistant can answer diverse tenant questions about rent increases, deposits, unpaid rent risk, contracts, evidence, market comparisons, moving costs, and utility estimates.
+- It should ask follow-up questions when required facts are missing and should not present legal guidance as definitive legal advice.
+- Guest/demo mode falls back to the local deterministic draft in `app.js`.
 
 ## Data Note
 

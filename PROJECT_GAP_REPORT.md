@@ -11,16 +11,17 @@ Use this rule before every release:
 - Database changed (`supabase/schema.sql` or SQL migrations): run the SQL in Supabase SQL Editor.
 - Secret changed (`OPENAI_API_KEY`, `OPENAI_MODEL`): usually no code deploy is needed, but redeploy the function if behavior looks stale.
 
-Current function deploy command:
+Current function deploy commands:
 
 ```powershell
 cd C:\Users\alpha\OneDrive\Desktop\c101
 npx.cmd supabase functions deploy analyze-evidence --project-ref gxqcacrtntnfnakitdaf
+npx.cmd supabase functions deploy ask-assistant --project-ref gxqcacrtntnfnakitdaf
 ```
 
 ## Current Status
 
-AI foundation is started. The app now has an OpenAI-backed Supabase Edge Function in code, local Supabase CLI setup through `npx.cmd`, and frontend evidence upload calls the function after remote upload. The remaining blocker is deploying the function after Supabase login is complete.
+AI foundation is started. The app now has OpenAI-backed Supabase Edge Functions in code, local Supabase CLI setup through `npx.cmd`, frontend evidence upload calls `analyze-evidence` after remote upload, and the assistant calls `ask-assistant` for signed-in tenants. The remaining blocker is deploying the functions after Supabase login is complete.
 
 ## Remaining Gaps And Focus
 
@@ -38,7 +39,7 @@ AI foundation is started. The app now has an OpenAI-backed Supabase Edge Functio
 
 4. Assistant backend
 
-   The assistant is currently template-based. Focus: create a Supabase Edge Function for AI replies that uses rent calculation, evidence summaries, contract findings, and market listings as context.
+   The first backend pass is implemented. Focus: deploy `ask-assistant`, sign in with a real tenant account, ask varied questions about deposit, nonpayment risk, utility estimates, rent increases, and contract risk, then confirm rows are saved in `assistant_messages`.
 
 5. Rental market data strategy
 
@@ -65,7 +66,7 @@ AI foundation is started. The app now has an OpenAI-backed Supabase Edge Functio
 1. Deploy and test AI evidence extraction.
 2. Add evidence lifecycle controls.
 3. Build contract-as-evidence workflow.
-4. Build AI assistant Edge Function.
+4. Deploy and test AI assistant Edge Function.
 5. Improve dashboard guidance.
 6. Harden account/security behavior.
 7. Expand market proof workflow.

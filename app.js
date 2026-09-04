@@ -191,8 +191,12 @@ const i18n = {
     assistantAnswerTitle: "Taslak yaklaşım",
     assistantSummary: "Durum özeti",
     assistantEvidence: "Kullanılacak kanıtlar",
+    assistantGuidance: "Yol haritası",
     assistantReplySection: "Yanıt taslağı",
     assistantRiskNote: "Not",
+    assistantWorking: "Asistan hazırlanıyor...",
+    assistantNeedsLogin: "AI asistan için giriş yapın. Şimdilik yerel taslak oluşturuldu.",
+    assistantUnavailable: "AI asistan yanıt veremedi; yerel taslak gösteriliyor.",
     chipRentIncrease: "Zam talebine cevap",
     chipDeposit: "Depozito kanıtı",
     chipMarketProof: "Emsal kira ile savun",
@@ -384,8 +388,12 @@ const i18n = {
     assistantAnswerTitle: "Draft approach",
     assistantSummary: "Situation summary",
     assistantEvidence: "Evidence to use",
+    assistantGuidance: "Guidance",
     assistantReplySection: "Reply draft",
     assistantRiskNote: "Note",
+    assistantWorking: "Assistant is preparing...",
+    assistantNeedsLogin: "Sign in to use the AI assistant. A local draft was created for now.",
+    assistantUnavailable: "The AI assistant could not respond; showing a local draft.",
     chipRentIncrease: "Reply to rent increase",
     chipDeposit: "Deposit proof",
     chipMarketProof: "Use market proof",
@@ -1338,7 +1346,55 @@ async function geocodeAddress() {
   }
 }
 
-function assistantReply() {
+function assistantCaseContext() {
+  const current = Number($("#currentRent").value || 0);
+  const requested = Number($("#requestedRent").value || 0);
+  const cpi = Number($("#cpiRate").value || 0);
+  const max = Math.round(current * (1 + cpi / 100));
+  const rents = readRentData();
+  const rentValues = rents.map((item) => Number(item.rent || 0)).filter(Boolean).sort((a, b) => a - b);
+  const medianRent = rentValues.length ? rentValues[Math.floor(rentValues.length / 2)] : 0;
+  return {
+    rent: {
+      current,
+      requested,
+      cpi_rate: cpi,
+      calculated_ceiling: max,
+      requested_above_ceiling: requested > max,
+      renewal_date: $("#renewalDate")?.value || null
+    },
+    location: {
+      district: $("#districtSelect")?.value || "Izmir / Narlidere",
+      home_type: $("#homeType")?.value || null
+    },
+    evidence: readEvidence().slice(0, 12).map((item) => ({
+      type: item.type,
+      status: item.status,
+      confidence: item.confidence,
+      summary: item.summary || item.note || "",
+      file_name: item.fileName || "",
+      created_at: item.createdAt || null
+    })),
+    market: {
+      listing_count: rents.length,
+      median_rent: medianRent,
+      listings: rents.slice(0, 12).map((item) => ({
+        title: item.title,
+        rent: item.rent,
+        size: item.size,
+        neighborhood: item.neighborhood,
+        address: item.address,
+        source: item.source,
+        proof: item.proof
+      }))
+    },
+    contract: {
+      available: hasContractEvidence()
+    }
+  };
+}
+
+function localAssistantAnswer() {
   const current = Number($("#currentRent").value || 0);
   const requested = Number($("#requestedRent").value || 0);
   const cpi = Number($("#cpiRate").value || 0);
@@ -1359,14 +1415,67 @@ function assistantReply() {
   const note = lang === "tr"
     ? "Bu taslak hukuki danışmanlık değildir; yüksek riskli durumda uzman görüşü alın."
     : "This draft is not legal advice; get expert advice for high-risk situations.";
+  return {
+    title: tr("assistantAnswerTitle"),
+    summary,
+    guidance: evidence,
+    draft: reply,
+    note,
+    answer_text: [summary, evidence, reply, note].join("\n\n")
+  };
+}
+
+function paragraphHtml(value) {
+  return escapeHtml(value || "").split(/\n{2,}/).map((part) => `<p>${part.replace(/\n/g, "<br>")}</p>`).join("");
+}
+
+function renderAssistantAnswer(answer, statusMessage = "") {
+  const summary = answer?.summary || "";
+  const guidance = answer?.guidance || "";
+  const draft = answer?.draft || "";
+  const note = answer?.note || "";
   $("#assistantAnswer").innerHTML = `<article class="assistant-response">
-    <div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${tr("assistantAnswerTitle")}</strong></div>
-    <section><span>${tr("assistantSummary")}</span><p>${summary}</p></section>
-    <section><span>${tr("assistantEvidence")}</span><p>${evidence}</p></section>
-    <section><span>${tr("assistantReplySection")}</span><p>${reply}</p></section>
-    <section class="assistant-note"><span>${tr("assistantRiskNote")}</span><p>${note}</p></section>
+    <div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${escapeHtml(answer?.title || tr("assistantAnswerTitle"))}</strong></div>
+    ${statusMessage ? `<section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(statusMessage)}</section>` : ""}
+    ${summary ? `<section><span>${tr("assistantSummary")}</span>${paragraphHtml(summary)}</section>` : ""}
+    ${guidance ? `<section><span>${tr("assistantGuidance")}</span>${paragraphHtml(guidance)}</section>` : ""}
+    ${draft ? `<section><span>${tr("assistantReplySection")}</span>${paragraphHtml(draft)}</section>` : ""}
+    ${note ? `<section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(note)}</section>` : ""}
   </article>`;
   renderChecklist();
+}
+
+async function assistantReply() {
+  const question = $("#questionBox").value.trim();
+  if (!question) return;
+
+  const localAnswer = localAssistantAnswer();
+  if (!supabaseClient || !currentUser) {
+    renderAssistantAnswer(localAnswer, tr("assistantNeedsLogin"));
+    return;
+  }
+
+  const button = $("#askAssistant");
+  button.disabled = true;
+  $("#assistantAnswer").innerHTML = `<article class="assistant-response"><div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${tr("assistantWorking")}</strong></div></article>`;
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("ask-assistant", {
+      body: {
+        question,
+        language: lang,
+        case_context: assistantCaseContext()
+      }
+    });
+    if (error || !data?.answer) {
+      renderAssistantAnswer(localAnswer, tr("assistantUnavailable"));
+      return;
+    }
+    renderAssistantAnswer(data.answer);
+  } catch {
+    renderAssistantAnswer(localAnswer, tr("assistantUnavailable"));
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function copyAssistantDraft() {

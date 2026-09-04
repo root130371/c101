@@ -14,7 +14,7 @@ Last updated: 2026-09-03
 1. Deploy and test `analyze-evidence`.
 2. Finish evidence lifecycle controls.
 3. Convert contract upload into real contract evidence analysis.
-4. Build AI assistant backend.
+4. Deploy and test AI assistant backend.
 5. Improve dashboard into a guided tenant workflow.
 6. Strengthen market proof workflow.
 7. Harden auth, account, and security behavior.
@@ -25,3 +25,4 @@ Last updated: 2026-09-03
 
 - Step 2 in progress: evidence timeline now supports open, edit note, and delete.
 - Step 3 in progress: contract upload now saves through the evidence upload/storage/AI pipeline and updates contract status from contract evidence.
+- Step 4 in progress: `ask-assistant` Edge Function is implemented and the frontend calls it for signed-in tenants, with local fallback for guests.

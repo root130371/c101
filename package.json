@@ -6,7 +6,9 @@
   "scripts": {
     "supabase:version": "supabase --version",
     "supabase:link": "supabase link --project-ref gxqcacrtntnfnakitdaf",
-    "deploy:function": "supabase functions deploy analyze-evidence"
+    "deploy:function": "supabase functions deploy analyze-evidence",
+    "deploy:assistant": "supabase functions deploy ask-assistant",
+    "deploy:functions": "supabase functions deploy analyze-evidence && supabase functions deploy ask-assistant"
   },
   "repository": {
     "type": "git",
