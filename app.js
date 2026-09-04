@@ -518,9 +518,16 @@ function fileSizeLabel(bytes) {
 
 function statusLabel(status) {
   if (status === "available") return tr("available");
+  if (status === "uploaded") return tr("uploaded");
   if (status === "processing") return tr("processing");
   if (status === "review_required") return tr("reviewRequired");
   return tr("unavailable");
+}
+
+function isImageFile(fileOrName) {
+  const type = fileOrName?.type || fileOrName?.fileType || "";
+  const name = fileOrName?.name || fileOrName?.fileName || "";
+  return type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp|heic|heif)$/i.test(name);
 }
 
 function latestEvidenceByType(type) {
@@ -573,7 +580,7 @@ async function analyzeEvidenceFile(file) {
     summary: tr("analysisPdf")
   };
 
-  if (!file.type.startsWith("image/")) {
+  if (!isImageFile(file)) {
     return base;
   }
 
@@ -1020,7 +1027,9 @@ function renderEvidence() {
   const evidence = readEvidence();
   const types = ["contract", "bank", "message", "photo", "listing"];
   $("#evidenceGrid").innerHTML = types.map((type) => {
-    const item = evidence.find((entry) => entry.type === type && entry.fileName);
+    const item = type === "contract"
+      ? contractEvidence()
+      : evidence.find((entry) => entry.type === type && entry.fileName);
     const status = item?.status || "missing";
     const icon = {
       bank: "ph-receipt",
@@ -1029,7 +1038,7 @@ function renderEvidence() {
       listing: "ph-link",
       contract: "ph-file-text"
     }[type];
-    return `<article class="evidence-state ${status === "available" ? "ok" : "missing"}">
+    return `<article class="evidence-state ${status !== "missing" ? "ok" : "missing"}">
       <i class="ph ${icon}"></i>
       <span>${tr(type)}</span>
       <strong>${statusLabel(status)}</strong>
@@ -1114,6 +1123,11 @@ function contractPreviewMarkup(contract, url = "") {
 
 async function renderContract() {
   const contract = contractEvidence();
+  renderContractPreview(contract);
+  updateStatuses();
+}
+
+async function renderContractPreview(contract) {
   const preview = $(".document-preview");
   if (!preview) return;
   const requestId = ++contractPreviewRequest;
@@ -1126,7 +1140,6 @@ async function renderContract() {
       preview.innerHTML = contractPreviewMarkup(contract, data.signedUrl);
     }
   }
-  updateStatuses();
 }
 
 async function addEvidence() {
@@ -1589,6 +1602,13 @@ function bindEvents() {
     if (!file) return;
     $("#ocrStamp").textContent = tr("processing");
     const analysis = await analyzeEvidenceFile(file);
+    renderContractPreview({
+      name: file.name,
+      fileName: file.name,
+      fileType: file.type || analysis?.fileType || "",
+      previewUrl: analysis?.previewUrl || "",
+      status: analysis?.status || "uploaded"
+    });
     const item = await persistEvidenceFile(file, "contract", tr("contractTitle"), analysis);
     writeJson(CONTRACT_KEY, {
       name: file.name,
