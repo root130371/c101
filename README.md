@@ -114,6 +114,52 @@ PDF, Word, and image uploads should be handled conservatively to avoid wasting q
 - Prefer redacted summaries for AI prompts; avoid sending Turkish ID numbers, bank IBANs, phone numbers, emails, signatures, and full addresses unless strictly needed.
 - Limit file size, page count, daily extraction count, and daily chat count per user before production.
 
+## Evidence Analysis AI Dependency Report
+
+Evidence analysis and assistant chat are two separate AI pipelines:
+
+```text
+supabase/functions/analyze-evidence/index.ts
+  Analyzes uploaded evidence files such as PDFs, images, receipts, screenshots, and later Word documents.
+
+supabase/functions/ask-assistant/index.ts
+  Answers tenant questions using saved case facts, extracted evidence summaries, rent calculations, market listings, and chat history.
+```
+
+Important dependency rule:
+
+- If only `ask-assistant` is moved to Gemini, chat can work on Gemini but document/evidence analysis may still fail on OpenAI quota.
+- If only `analyze-evidence` is moved to Gemini, document summaries can work on Gemini but chat may still fail on OpenAI quota.
+- To make the whole prototype work without OpenAI API credits, both functions should use the same configurable provider layer.
+
+Recommended future configuration:
+
+```text
+AI_PROVIDER=gemini
+GEMINI_API_KEY=...
+GEMINI_CHAT_MODEL=gemini-2.5-flash
+GEMINI_DOCUMENT_MODEL=gemini-2.5-flash
+```
+
+Document analysis quota policy:
+
+- Treat each document upload as expensive compared with a normal chat question.
+- Analyze each uploaded file once and store the extracted result in `evidence_items`.
+- Future chat questions should use `summary_tr`, `summary_en`, `confidence`, and `extracted_json` instead of resending the original file.
+- For large contracts, analyze only a limited page range or ask the user to upload/select the relevant pages.
+- Word files should be converted/extracted to text first; avoid sending full `.docx` binaries repeatedly.
+- A reasonable prototype limit is 3 document analyses per user per day and 10-20 chat questions per user per day.
+
+OpenAI billing rule:
+
+- The current OpenAI-backed evidence analysis requires OpenAI API billing/credits.
+- A normal ChatGPT Free/Plus/Pro account quota is not enough for this deployed app.
+- ChatGPT subscriptions and OpenAI API billing are separate systems.
+- ChatGPT personal usage credits are for supported ChatGPT/Codex/Work features and are not API credits for this app.
+- There is no supported way for a public website or Supabase Edge Function to spend the owner's normal ChatGPT message quota.
+
+For a no-card prototype, migrate both `analyze-evidence` and `ask-assistant` to Gemini Free Tier, then keep the conservative limits above. Before Google Play release, revisit provider privacy terms, explicit consent, rate limits, abuse controls, and paid production billing.
+
 ## Data Note
 
 The nearby-rent map starts empty. It reads public `rent_listings` rows from Supabase when available. A real Supabase admin can add, edit, and delete listings. The demo admin login still works as a local fallback.
