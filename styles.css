@@ -1072,6 +1072,61 @@ textarea {
     repeating-linear-gradient(0deg, #edf2f6 0 1px, transparent 1px 28px);
 }
 
+.document-preview.has-contract-preview {
+  min-height: 340px;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: stretch;
+  background: #f8fafc;
+}
+
+.contract-preview-media {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  display: block;
+  object-fit: cover;
+  border: 0;
+  background: #fff;
+}
+
+.contract-preview-pdf {
+  object-fit: contain;
+}
+
+.contract-file-fallback {
+  min-height: 340px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  background:
+    linear-gradient(135deg, rgba(240, 249, 255, 0.92), rgba(236, 253, 245, 0.78)),
+    #fff;
+}
+
+.contract-file-fallback i {
+  font-size: 52px;
+  color: var(--brand);
+}
+
+.contract-file-fallback strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.contract-file-fallback span {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .doc-line {
   height: 12px;
   border-radius: 999px;
@@ -1093,6 +1148,15 @@ textarea {
   border-radius: 10px;
   font-weight: 900;
   transform: rotate(-7deg);
+}
+
+.document-preview.has-contract-preview .stamp {
+  right: 14px;
+  bottom: 14px;
+  max-width: calc(100% - 28px);
+  overflow-wrap: anywhere;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
 }
 
 .risk-list,

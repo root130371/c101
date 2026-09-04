@@ -426,6 +426,7 @@ let currentUser = null;
 let currentProfile = null;
 let welcomeAuthMode = "login";
 let selectedListingIndex = null;
+let contractPreviewRequest = 0;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -1076,9 +1077,48 @@ function renderPendingEvidenceAnalysis(analysis) {
   </article>`;
 }
 
-function renderContract() {
+function contractPlaceholderMarkup(label = tr("ocrWaiting")) {
+  return `<div class="doc-line w80"></div><div class="doc-line w60"></div><div class="doc-line w90"></div><div class="stamp" id="ocrStamp">${escapeHtml(label)}</div>`;
+}
+
+function contractPreviewMarkup(contract, url = "") {
+  const name = contract?.fileName || contract?.name || "";
+  const fileType = contract?.fileType || "";
+  const isImage = fileType.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(name);
+  const isPdf = fileType.includes("pdf") || /\.pdf$/i.test(name);
+  const label = name ? `${tr("uploaded")}: ${name}` : tr("ocrWaiting");
+
+  if (url && isImage) {
+    return `<img class="contract-preview-media" src="${escapeHtml(url)}" alt="${escapeHtml(name)}"><div class="stamp" id="ocrStamp">${escapeHtml(label)}</div>`;
+  }
+
+  if (url && isPdf) {
+    return `<object class="contract-preview-media contract-preview-pdf" data="${escapeHtml(url)}" type="application/pdf">
+      <div class="contract-file-fallback"><i class="ph ph-file-pdf"></i><strong>${escapeHtml(name)}</strong></div>
+    </object><div class="stamp" id="ocrStamp">${escapeHtml(label)}</div>`;
+  }
+
+  if (name) {
+    return `<div class="contract-file-fallback"><i class="ph ${isPdf ? "ph-file-pdf" : "ph-file-text"}"></i><strong>${escapeHtml(name)}</strong><span>${escapeHtml(statusLabel(contract?.status || "uploaded"))}</span></div><div class="stamp" id="ocrStamp">${escapeHtml(label)}</div>`;
+  }
+
+  return contractPlaceholderMarkup(label);
+}
+
+async function renderContract() {
   const contract = latestEvidenceByType("contract") || readJson(CONTRACT_KEY, null);
-  $("#ocrStamp").textContent = contract?.fileName || contract?.name ? `${tr("uploaded")}: ${contract.fileName || contract.name}` : tr("ocrWaiting");
+  const preview = $(".document-preview");
+  if (!preview) return;
+  const requestId = ++contractPreviewRequest;
+  preview.classList.toggle("has-contract-preview", Boolean(contract));
+  preview.innerHTML = contractPreviewMarkup(contract, contract?.previewUrl || "");
+
+  if (contract?.storagePath && !contract.previewUrl && supabaseClient && currentUser) {
+    const { data, error } = await supabaseClient.storage.from(EVIDENCE_BUCKET).createSignedUrl(contract.storagePath, 180);
+    if (!error && data?.signedUrl && requestId === contractPreviewRequest) {
+      preview.innerHTML = contractPreviewMarkup(contract, data.signedUrl);
+    }
+  }
   updateStatuses();
 }
 
