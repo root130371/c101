@@ -1448,7 +1448,14 @@ async function callAssistantFunction(question) {
     payload = { error: text };
   }
   if (!response.ok) {
-    const message = payload?.error || payload?.message || payload?.code || text || `HTTP ${response.status}`;
+    const detailParts = [
+      payload?.error || payload?.message || payload?.code || text || `HTTP ${response.status}`,
+      payload?.error_code ? `Code: ${payload.error_code}` : "",
+      payload?.recovery ? `Fix: ${payload.recovery}` : "",
+      payload?.reset ? `Reset: ${payload.reset}` : "",
+      payload?.billing_url ? `Billing: ${payload.billing_url}` : ""
+    ].filter(Boolean);
+    const message = detailParts.join("\n");
     throw new Error(`HTTP ${response.status}: ${message}`);
   }
   if (!payload?.answer) throw new Error("Assistant response did not include an answer.");

@@ -82,8 +82,8 @@ Deno.serve(async (request) => {
 
     return json({ answer });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown assistant error";
-    return json({ error: message }, 500);
+    const appError = normalizeAssistantError(error);
+    return json(appError, appError.status);
   }
 });
 
@@ -180,7 +180,10 @@ async function askOpenAI(apiKey: string, model: string, context: Record<string, 
     })
   });
 
-  if (!response.ok) throw new Error(`OpenAI assistant failed: ${await response.text()}`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new AssistantError("openai_request_failed", `OpenAI assistant failed: ${text}`, 502, parseJsonObjectSafe(text));
+  }
   const result = await response.json();
   const parsed = parseJsonObject(extractOutputText(result));
   const title = stringOrFallback(parsed.title, "Assistant answer");
@@ -231,8 +234,57 @@ function parseJsonObject(text: string) {
   }
 }
 
+function parseJsonObjectSafe(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 function stringOrFallback(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+class AssistantError extends Error {
+  code: string;
+  status: number;
+  details: unknown;
+
+  constructor(code: string, message: string, status = 500, details: unknown = null) {
+    super(message);
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+}
+
+function normalizeAssistantError(error: unknown) {
+  if (error instanceof AssistantError) {
+    const openaiCode = (error.details as any)?.error?.code;
+    if (openaiCode === "credit_balance_exhausted") {
+      return {
+        status: 402,
+        error: "AI credits are exhausted for the OpenAI API organization.",
+        error_code: "openai_credit_balance_exhausted",
+        recovery: "Add API credits in OpenAI Platform billing, then retry after a few minutes.",
+        reset: "This does not have a known automatic reset. It is a prepaid API credit balance, not a monthly free allowance.",
+        billing_url: "https://platform.openai.com/settings/organization/billing"
+      };
+    }
+    return {
+      status: error.status,
+      error: error.message,
+      error_code: error.code
+    };
+  }
+
+  const message = error instanceof Error ? error.message : "Unknown assistant error";
+  return {
+    status: 500,
+    error: message,
+    error_code: "assistant_failed"
+  };
 }
 
 function json(payload: unknown, status = 200) {

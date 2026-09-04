@@ -96,6 +96,8 @@ Assistant behavior:
 - It should ask follow-up questions when required facts are missing and should not present legal guidance as definitive legal advice.
 - Guest/demo mode asks the user to sign in instead of showing a fake AI answer.
 
+If the assistant returns `openai_credit_balance_exhausted`, the OpenAI API organization has no prepaid API credits left. This is separate from ChatGPT plan usage and normally does not have an automatic reset date; add API credits in OpenAI Platform billing and retry after a few minutes.
+
 ## Data Note
 
 The nearby-rent map starts empty. It reads public `rent_listings` rows from Supabase when available. A real Supabase admin can add, edit, and delete listings. The demo admin login still works as a local fallback.
