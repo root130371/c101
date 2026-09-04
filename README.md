@@ -98,6 +98,22 @@ Assistant behavior:
 
 If the assistant returns `openai_credit_balance_exhausted`, the OpenAI API organization has no prepaid API credits left. This is separate from ChatGPT plan usage and normally does not have an automatic reset date; add API credits in OpenAI Platform billing and retry after a few minutes.
 
+## Pre-Release AI Provider Warning
+
+Before any official Google Play release, review and replace the prototype AI provider setup. If Gemini Free Tier is used during development, document the privacy/quota tradeoff clearly: free-tier prompts and responses may be used to improve Google products, and daily limits can interrupt the assistant. Production should use a paid provider configuration, tenant consent language, rate limits, abuse controls, and a privacy policy that matches the provider terms.
+
+## Conservative Document AI Policy
+
+PDF, Word, and image uploads should be handled conservatively to avoid wasting quota and exposing unnecessary personal data:
+
+- Upload the original file once to the private Supabase `evidence` bucket.
+- Run extraction once per file, then save only structured fields, short summaries, confidence, and risk flags in `evidence_items`.
+- Do not resend full PDF/Word files to the chat assistant on every question.
+- Chat should use saved summaries and extracted fields by default.
+- Only re-analyze the original file when the user explicitly asks a document-specific question that cannot be answered from the saved summary.
+- Prefer redacted summaries for AI prompts; avoid sending Turkish ID numbers, bank IBANs, phone numbers, emails, signatures, and full addresses unless strictly needed.
+- Limit file size, page count, daily extraction count, and daily chat count per user before production.
+
 ## Data Note
 
 The nearby-rent map starts empty. It reads public `rent_listings` rows from Supabase when available. A real Supabase admin can add, edit, and delete listings. The demo admin login still works as a local fallback.
