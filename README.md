@@ -98,6 +98,29 @@ Assistant behavior:
 
 If the assistant returns `gemini_resource_exhausted`, the Gemini project has hit a free-tier quota or rate limit. Requests-per-day quotas reset at midnight Pacific Time; minute/token limits reset sooner.
 
+## Research-Grounded Assistant Plan
+
+The current assistant answers from the app's saved case data, extracted evidence summaries, rent calculations, market rows, and chat history. That is the cheapest/default path and should stay the default for normal questions.
+
+For questions that need current public information, add an optional research-grounded path instead of guessing. Examples:
+
+- "What is the current TEFE/TUFE limit?"
+- "My landlord increased rent this month; what official rate should I compare against?"
+- "Find the relevant Turkish law article for deposit return."
+- "Use official sources to explain what happens if I miss rent twice."
+
+Recommended behavior:
+
+- Use ordinary Gemini chat for document summaries, draft replies, checklist logic, and questions that can be answered from stored case facts.
+- Use Gemini Grounding with Google Search only when the answer needs current or source-backed public information.
+- Prefer official Turkish sources first, especially `tuik.gov.tr`, `mevzuat.gov.tr`, `resmigazete.gov.tr`, courts/government pages, and then reputable secondary explanations if official pages are not enough.
+- Show source links/citations in the assistant response whenever grounding is used.
+- Store only the final short answer, cited URLs, and source titles in `assistant_messages`; do not store full scraped pages.
+- Add a clear UI marker such as "Sources checked" when grounded search was used.
+- Keep this off for every-message use because search grounding can have separate quota, pricing, and latency from normal model calls.
+
+Implementation note: Gemini supports Google Search grounding through the Gemini API, returning grounding metadata/citations that the frontend can display. Relevant docs: `https://ai.google.dev/gemini-api/docs/google-search`.
+
 ## Pre-Release AI Provider Warning
 
 Before any official Google Play release, review and replace the prototype AI provider setup. If Gemini Free Tier is used during development, document the privacy/quota tradeoff clearly: free-tier prompts and responses may be used to improve Google products, and daily limits can interrupt the assistant. Production should use a paid provider configuration, tenant consent language, rate limits, abuse controls, and a privacy policy that matches the provider terms.

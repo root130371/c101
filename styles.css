@@ -1191,6 +1191,66 @@ textarea {
   margin-bottom: 4px;
 }
 
+.risk h4 {
+  margin: 12px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.risk ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.risk small {
+  color: var(--muted);
+}
+
+.contract-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.contract-field-grid div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.contract-field-grid span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.contract-field-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.contract-ai-meter {
+  height: 8px;
+  margin: 10px 0 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.contract-ai-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--teal));
+}
+
 .check {
   display: flex;
   align-items: center;
@@ -1662,6 +1722,7 @@ textarea {
   .summary-grid,
   .status-strip,
   .evidence-grid,
+  .contract-field-grid,
   .scanner-fields,
   .form-grid,
   .nav {

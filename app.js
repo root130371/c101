@@ -93,6 +93,24 @@ const i18n = {
     evidenceDeleteFailed: "Kanıt silinemedi; lütfen tekrar deneyin.",
     evidenceNotePrompt: "Bu kanıt için yeni not yazın:",
     contractSaved: "Kontrat kanıt kasasına eklendi.",
+    contractAiTitle: "Kontrat AI analizi",
+    contractAiPendingTitle: "Kontrat y\u00fcklendi, AI analizi bekleniyor",
+    contractAiPendingBody: "Analiz tamamlandiginda ozet, tutarlar, risk isaretleri ve eksik alanlar burada gorunecek.",
+    contractAiFailed: "AI analizi tamamlanamadi. Supabase Edge Function veya Gemini yanit ayrintisini kontrol edin.",
+    contractAiFields: "Cikarilan alanlar",
+    contractAiRisks: "Risk isaretleri",
+    contractAiMissing: "Eksik alanlar",
+    contractAiConfidence: "Guven",
+    contractAiNoFlags: "Kontrattan otomatik risk isareti cikmadi.",
+    contractAiNoMissing: "Otomatik eksik alan bulunmadi.",
+    fieldDocumentType: "Belge tipi",
+    fieldRentAmount: "Kira tutari",
+    fieldDepositAmount: "Depozito",
+    fieldPaymentDate: "Odeme tarihi",
+    fieldSender: "Gonderen",
+    fieldRecipient: "Alici",
+    fieldAddress: "Adres",
+    fieldLandlord: "Ev sahibi / temsilci",
     bank: "Banka dekontu",
     message: "Mesaj ekran görüntüsü",
     photo: "Ev fotoğrafı",
@@ -290,6 +308,24 @@ const i18n = {
     evidenceDeleteFailed: "Evidence could not be deleted; please try again.",
     evidenceNotePrompt: "Write a new note for this evidence:",
     contractSaved: "Contract added to the evidence vault.",
+    contractAiTitle: "Contract AI analysis",
+    contractAiPendingTitle: "Contract uploaded, AI analysis pending",
+    contractAiPendingBody: "When analysis completes, the summary, amounts, risk flags, and missing fields will appear here.",
+    contractAiFailed: "AI analysis could not complete. Check the Supabase Edge Function or Gemini response details.",
+    contractAiFields: "Extracted fields",
+    contractAiRisks: "Risk flags",
+    contractAiMissing: "Missing fields",
+    contractAiConfidence: "Confidence",
+    contractAiNoFlags: "No automatic risk flags were found in the contract.",
+    contractAiNoMissing: "No automatic missing fields were found.",
+    fieldDocumentType: "Document type",
+    fieldRentAmount: "Rent amount",
+    fieldDepositAmount: "Deposit",
+    fieldPaymentDate: "Payment date",
+    fieldSender: "Sender",
+    fieldRecipient: "Recipient",
+    fieldAddress: "Address",
+    fieldLandlord: "Landlord / agent",
     bank: "Bank receipt",
     message: "Message screenshot",
     photo: "Home photo",
@@ -659,10 +695,34 @@ async function createExtractionJob(item) {
   const { data, error } = await supabaseClient.functions.invoke("analyze-evidence", {
     body: { evidence_id: item.remoteId }
   });
-  if (error || !data?.extraction) return;
+  if (error || !data?.extraction) {
+    const message = error?.message || tr("contractAiFailed");
+    item.status = "review_required";
+    item.summary = message;
+    await supabaseClient
+      .from("evidence_items")
+      .update({
+        status: "review_required",
+        summary_tr: lang === "tr" ? message : null,
+        summary_en: lang === "en" ? message : null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", item.remoteId)
+      .eq("user_id", currentUser.id);
+    $("#evidenceAnalysis").innerHTML = `<article class="analysis-card warn"><strong>${tr("reviewRequired")}</strong><p>${escapeHtml(message)}</p></article>`;
+    renderRisks();
+    return;
+  }
   item.status = data.status || item.status;
   item.confidence = data.extraction.confidence ?? item.confidence;
   item.summary = `${lang === "tr" ? data.extraction.summary_tr : data.extraction.summary_en} ${tr("extractionRemote")}`;
+  item.extractedJson = {
+    ...(item.extractedJson || {}),
+    ai: data.extraction,
+    analyzed_at: new Date().toISOString(),
+    provider: "gemini"
+  };
+  renderRisks();
   await loadRemoteEvidence();
 }
 
@@ -1019,8 +1079,72 @@ function updateScore() {
   $("#caseScore").textContent = `${score}%`;
 }
 
+function contractAiResult(contract) {
+  const extracted = contract?.extractedJson || {};
+  return extracted.ai || extracted;
+}
+
+function hasContractAiResult(contract) {
+  const ai = contractAiResult(contract);
+  return Boolean(ai?.summary_tr || ai?.summary_en || ai?.risk_flags || ai?.missing_fields);
+}
+
+function contractFieldMarkup(labelKey, value) {
+  if (value === null || value === undefined || value === "") return "";
+  return `<div><span>${tr(labelKey)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+function listMarkup(items, emptyKey) {
+  const values = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (!values.length) return `<p>${tr(emptyKey)}</p>`;
+  return `<ul>${values.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+
+function genericRiskMarkup() {
+  return riskData.map((item) => `<article class="risk ${item.level}"><strong>${item.title[lang]}</strong><p>${item.text[lang]}</p></article>`).join("");
+}
+
+function contractAnalysisMarkup(contract) {
+  if (!contract) return genericRiskMarkup();
+
+  if (!hasContractAiResult(contract)) {
+    const failed = contract.status === "review_required" && contract.summary && !contract.summary.includes(tr("analysisPdf"));
+    return `<article class="risk medium contract-ai-pending">
+      <strong>${tr(failed ? "reviewRequired" : "contractAiPendingTitle")}</strong>
+      <p>${escapeHtml(failed ? contract.summary : tr("contractAiPendingBody"))}</p>
+      <small>${escapeHtml(contract.fileName || "")}</small>
+    </article>${genericRiskMarkup()}`;
+  }
+
+  const ai = contractAiResult(contract);
+  const summary = (lang === "tr" ? ai.summary_tr : ai.summary_en) || ai.summary_tr || ai.summary_en || contract.summary || "";
+  const confidence = Math.round(Math.max(0, Math.min(1, Number(ai.confidence || contract.confidence || 0))) * 100);
+  const fields = [
+    contractFieldMarkup("fieldDocumentType", ai.document_type),
+    contractFieldMarkup("fieldRentAmount", ai.rent_amount),
+    contractFieldMarkup("fieldDepositAmount", ai.deposit_amount),
+    contractFieldMarkup("fieldPaymentDate", ai.payment_date),
+    contractFieldMarkup("fieldSender", ai.sender),
+    contractFieldMarkup("fieldRecipient", ai.recipient),
+    contractFieldMarkup("fieldAddress", ai.address),
+    contractFieldMarkup("fieldLandlord", ai.landlord_or_agent)
+  ].filter(Boolean).join("");
+
+  return `<article class="risk low contract-ai-card">
+    <strong>${tr("contractAiTitle")}</strong>
+    <p>${escapeHtml(summary)}</p>
+    <div class="contract-ai-meter" aria-label="${tr("contractAiConfidence")} ${confidence}%"><span style="width: ${confidence}%"></span></div>
+    <small>${tr("contractAiConfidence")}: ${confidence}%</small>
+    ${fields ? `<h4>${tr("contractAiFields")}</h4><div class="contract-field-grid">${fields}</div>` : ""}
+    <h4>${tr("contractAiRisks")}</h4>
+    ${listMarkup(ai.risk_flags, "contractAiNoFlags")}
+    <h4>${tr("contractAiMissing")}</h4>
+    ${listMarkup(ai.missing_fields, "contractAiNoMissing")}
+  </article>${genericRiskMarkup()}`;
+}
+
 function renderRisks() {
-  $("#riskList").innerHTML = riskData.map((item) => `<article class="risk ${item.level}"><strong>${item.title[lang]}</strong><p>${item.text[lang]}</p></article>`).join("");
+  $("#riskList").innerHTML = contractAnalysisMarkup(contractEvidence());
 }
 
 function renderEvidence() {
@@ -1063,6 +1187,7 @@ function renderEvidence() {
 
   updateStatuses();
   updateScore();
+  renderRisks();
 }
 
 function renderEvidenceOptions() {
@@ -1124,6 +1249,7 @@ function contractPreviewMarkup(contract, url = "") {
 async function renderContract() {
   const contract = contractEvidence();
   renderContractPreview(contract);
+  renderRisks();
   updateStatuses();
 }
 
