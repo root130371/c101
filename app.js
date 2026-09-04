@@ -1422,6 +1422,39 @@ function renderAssistantNotice(title, message) {
   renderChecklist();
 }
 
+async function callAssistantFunction(question) {
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error("Signed-in session token is missing. Sign out and sign in again.");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/ask-assistant`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      question,
+      language: lang,
+      case_context: assistantCaseContext()
+    })
+  });
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = { error: text };
+  }
+  if (!response.ok) {
+    const message = payload?.error || payload?.message || payload?.code || text || `HTTP ${response.status}`;
+    throw new Error(`HTTP ${response.status}: ${message}`);
+  }
+  if (!payload?.answer) throw new Error("Assistant response did not include an answer.");
+  return payload.answer;
+}
+
 async function assistantReply() {
   const question = $("#questionBox").value.trim();
   if (!question) return;
@@ -1435,19 +1468,8 @@ async function assistantReply() {
   button.disabled = true;
   $("#assistantAnswer").innerHTML = `<article class="assistant-response"><div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${tr("assistantWorking")}</strong></div></article>`;
   try {
-    const { data, error } = await supabaseClient.functions.invoke("ask-assistant", {
-      body: {
-        question,
-        language: lang,
-        case_context: assistantCaseContext()
-      }
-    });
-    if (error || !data?.answer) {
-      const message = error?.message || data?.error || tr("assistantUnavailable");
-      renderAssistantNotice(tr("assistantEyebrow"), `${tr("assistantUnavailable")}\n\n${message}`);
-      return;
-    }
-    renderAssistantAnswer(data.answer);
+    const answer = await callAssistantFunction(question);
+    renderAssistantAnswer(answer);
   } catch (error) {
     renderAssistantNotice(tr("assistantEyebrow"), `${tr("assistantUnavailable")}\n\n${error.message || "Network error"}`);
   } finally {
