@@ -527,8 +527,14 @@ function latestEvidenceByType(type) {
   return readEvidence().find((item) => item.type === type && item.fileName) || null;
 }
 
+function contractEvidence() {
+  const items = readEvidence().filter((item) => item.type === "contract" && item.fileName);
+  const richItem = items.find((item) => item.previewUrl || item.storagePath);
+  return richItem || items[0] || readJson(CONTRACT_KEY, null);
+}
+
 function hasContractEvidence() {
-  return Boolean(latestEvidenceByType("contract") || readJson(CONTRACT_KEY, null));
+  return Boolean(contractEvidence());
 }
 
 function readImage(file) {
@@ -760,6 +766,7 @@ async function loadRemoteEvidence() {
   const localOnly = readEvidence().filter((item) => !item.remoteId);
   writeJson(EVIDENCE_KEY, [...remoteItems, ...localOnly]);
   renderEvidence();
+  renderContract();
 }
 
 function mapRemoteListing(item) {
@@ -1106,7 +1113,7 @@ function contractPreviewMarkup(contract, url = "") {
 }
 
 async function renderContract() {
-  const contract = latestEvidenceByType("contract") || readJson(CONTRACT_KEY, null);
+  const contract = contractEvidence();
   const preview = $(".document-preview");
   if (!preview) return;
   const requestId = ++contractPreviewRequest;
@@ -1585,6 +1592,10 @@ function bindEvents() {
     const item = await persistEvidenceFile(file, "contract", tr("contractTitle"), analysis);
     writeJson(CONTRACT_KEY, {
       name: file.name,
+      fileName: item.fileName || file.name,
+      fileType: item.fileType || file.type || "",
+      previewUrl: item.previewUrl || "",
+      storagePath: item.storagePath || "",
       remoteId: item.remoteId || null,
       status: item.status,
       uploadedAt: new Date().toISOString()
