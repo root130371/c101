@@ -75,8 +75,8 @@ supabase functions deploy ask-assistant
 Optional model override:
 
 ```powershell
-supabase secrets set GEMINI_DOCUMENT_MODEL=gemini-2.5-flash-lite
-supabase secrets set GEMINI_CHAT_MODEL=gemini-2.5-flash-lite
+supabase secrets set GEMINI_DOCUMENT_MODEL=gemini-3.5-flash-lite
+supabase secrets set GEMINI_CHAT_MODEL=gemini-3.5-flash-lite
 ```
 
 You can also add it in Supabase Dashboard:
@@ -136,8 +136,8 @@ Recommended future configuration:
 
 ```text
 GEMINI_API_KEY=...
-GEMINI_CHAT_MODEL=gemini-2.5-flash-lite
-GEMINI_DOCUMENT_MODEL=gemini-2.5-flash-lite
+GEMINI_CHAT_MODEL=gemini-3.5-flash-lite
+GEMINI_DOCUMENT_MODEL=gemini-3.5-flash-lite
 ```
 
 Document analysis quota policy:
