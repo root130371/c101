@@ -24,13 +24,13 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_MODEL") || "gpt-5-mini";
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const model = Deno.env.get("GEMINI_DOCUMENT_MODEL") || "gemini-2.5-flash-lite";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-  if (!apiKey) return json({ error: "OPENAI_API_KEY is not configured." }, 501);
+  if (!apiKey) return json({ error: "GEMINI_API_KEY is not configured." }, 501);
   if (!supabaseUrl || !serviceRoleKey || !anonKey) {
     return json({ error: "Supabase function environment is incomplete." }, 500);
   }
@@ -50,7 +50,7 @@ Deno.serve(async (request) => {
 
   await updateJob(supabaseUrl, serviceRoleKey, body.evidence_id, {
     status: "processing",
-    provider: "openai",
+    provider: "gemini",
     started_at: new Date().toISOString(),
     error_message: null
   });
@@ -61,7 +61,7 @@ Deno.serve(async (request) => {
     if (evidence.user_id !== user.id) return json({ error: "Forbidden" }, 403);
 
     const file = await downloadEvidenceFile(supabaseUrl, serviceRoleKey, evidence);
-    const extraction = await analyzeWithOpenAI(apiKey, model, evidence, file);
+    const extraction = await analyzeWithGemini(apiKey, model, evidence, file);
     const status = extraction.confidence >= 0.68 ? "available" : "review_required";
 
     await updateEvidence(supabaseUrl, serviceRoleKey, evidence.id, {
@@ -73,7 +73,7 @@ Deno.serve(async (request) => {
         ...(evidence.extracted_json || {}),
         ai: extraction,
         analyzed_at: new Date().toISOString(),
-        provider: "openai"
+        provider: "gemini"
       },
       updated_at: new Date().toISOString()
     });
@@ -137,42 +137,46 @@ async function downloadEvidenceFile(supabaseUrl: string, serviceRoleKey: string,
   };
 }
 
-async function analyzeWithOpenAI(apiKey: string, model: string, evidence: EvidenceRow, file: { mimeType: string; base64: string }) {
-  const dataUrl = `data:${file.mimeType};base64,${file.base64}`;
-  const isPdf = file.mimeType.includes("pdf") || evidence.file_name.toLowerCase().endsWith(".pdf");
-  const filePart = isPdf
-    ? { type: "input_file", filename: evidence.file_name, file_data: dataUrl }
-    : { type: "input_image", image_url: dataUrl };
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
+async function analyzeWithGemini(apiKey: string, model: string, evidence: EvidenceRow, file: { mimeType: string; base64: string }) {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${apiKey}`,
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      model,
-      input: [{
+      contents: [{
         role: "user",
-        content: [
+        parts: [
           {
-            type: "input_text",
             text: [
               "Analyze this tenant evidence for a Turkey rental assistant app.",
-              "Return strict JSON only with these keys:",
+              `Evidence type hint: ${evidence.type}. File name: ${evidence.file_name}.`,
+              "Return JSON only with these exact keys:",
               "document_type, detected_language, rent_amount, deposit_amount, payment_date, sender, recipient, address, landlord_or_agent, summary_tr, summary_en, risk_flags, missing_fields, confidence.",
-              "Use null when a field is not visible. confidence must be a number from 0 to 1."
+              "Use null when a scalar field is not visible.",
+              "risk_flags and missing_fields must be arrays of strings.",
+              "confidence must be a number from 0 to 1.",
+              "Do not include markdown, code fences, or commentary outside the JSON object."
             ].join(" ")
           },
-          filePart
+          {
+            inlineData: {
+              mimeType: file.mimeType,
+              data: file.base64
+            }
+          }
         ]
-      }]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1
+      }
     })
   });
 
-  if (!response.ok) throw new Error(`OpenAI analysis failed: ${await response.text()}`);
+  if (!response.ok) throw new Error(`Gemini analysis failed: ${await response.text()}`);
   const result = await response.json();
-  const parsed = parseJsonObject(extractOutputText(result));
+  const parsed = parseJsonObject(extractGeminiText(result));
   return {
     document_type: parsed.document_type || evidence.type,
     detected_language: parsed.detected_language || null,
@@ -216,12 +220,11 @@ function serviceHeaders(serviceRoleKey: string, jsonBody = false) {
   };
 }
 
-function extractOutputText(result: Record<string, unknown>) {
-  if (typeof result.output_text === "string") return result.output_text;
-  const output = Array.isArray(result.output) ? result.output : [];
-  return output
-    .flatMap((item: any) => Array.isArray(item.content) ? item.content : [])
-    .map((content: any) => content.text || "")
+function extractGeminiText(result: Record<string, unknown>) {
+  const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+  return candidates
+    .flatMap((candidate: any) => Array.isArray(candidate.content?.parts) ? candidate.content.parts : [])
+    .map((part: any) => part.text || "")
     .join("\n")
     .trim();
 }
@@ -231,7 +234,7 @@ function parseJsonObject(text: string) {
     return JSON.parse(text);
   } catch {
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("OpenAI did not return parseable JSON.");
+    if (!match) throw new Error("Gemini did not return parseable JSON.");
     return JSON.parse(match[0]);
   }
 }

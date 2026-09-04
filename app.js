@@ -195,7 +195,7 @@ const i18n = {
     assistantReplySection: "Yanıt taslağı",
     assistantRiskNote: "Not",
     assistantWorking: "Asistan hazırlanıyor...",
-    assistantNeedsLogin: "AI asistan için giriş yapın. Bu yanıt OpenAI destekli çalışır ve demo modunda yerel taslak göstermez.",
+    assistantNeedsLogin: "AI asistan için giriş yapın. Bu yanıt Gemini destekli çalışır ve demo modunda yerel taslak göstermez.",
     assistantUnavailable: "AI asistan yanıt veremedi. Aşağıdaki hata ayrıntısını kontrol edin.",
     chipRentIncrease: "Zam talebine cevap",
     chipDeposit: "Depozito kanıtı",
@@ -392,7 +392,7 @@ const i18n = {
     assistantReplySection: "Reply draft",
     assistantRiskNote: "Note",
     assistantWorking: "Assistant is preparing...",
-    assistantNeedsLogin: "Sign in to use the AI assistant. This answer is OpenAI-backed and no local draft is shown in demo mode.",
+    assistantNeedsLogin: "Sign in to use the AI assistant. This answer is Gemini-backed and no local draft is shown in demo mode.",
     assistantUnavailable: "The AI assistant could not respond. Check the error detail below.",
     chipRentIncrease: "Reply to rent increase",
     chipDeposit: "Deposit proof",
@@ -654,7 +654,7 @@ async function createExtractionJob(item) {
     evidence_id: item.remoteId,
     user_id: currentUser.id,
     status: "queued",
-    provider: "pending_openai"
+    provider: "pending_gemini"
   });
   const { data, error } = await supabaseClient.functions.invoke("analyze-evidence", {
     body: { evidence_id: item.remoteId }

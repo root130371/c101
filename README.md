@@ -60,14 +60,14 @@ supabase/functions/analyze-evidence/index.ts
 supabase/functions/ask-assistant/index.ts
 ```
 
-They call OpenAI only from Supabase Edge Functions. Never put `OPENAI_API_KEY` in `app.js`, GitHub Pages, or any frontend file.
+They call Gemini only from Supabase Edge Functions. Never put `GEMINI_API_KEY` in `app.js`, GitHub Pages, or any frontend file.
 
 Add the secret from the project folder after installing/logging into the Supabase CLI:
 
 ```powershell
 cd C:\Users\alpha\OneDrive\Desktop\c101
 supabase link --project-ref gxqcacrtntnfnakitdaf
-supabase secrets set OPENAI_API_KEY=sk-your-real-key-here
+supabase secrets set GEMINI_API_KEY=your-gemini-key-here
 supabase functions deploy analyze-evidence
 supabase functions deploy ask-assistant
 ```
@@ -75,8 +75,8 @@ supabase functions deploy ask-assistant
 Optional model override:
 
 ```powershell
-supabase secrets set OPENAI_MODEL=gpt-5-mini
-supabase secrets set OPENAI_ASSISTANT_MODEL=gpt-5-mini
+supabase secrets set GEMINI_DOCUMENT_MODEL=gemini-2.5-flash-lite
+supabase secrets set GEMINI_CHAT_MODEL=gemini-2.5-flash-lite
 ```
 
 You can also add it in Supabase Dashboard:
@@ -84,19 +84,19 @@ You can also add it in Supabase Dashboard:
 1. Open your Supabase project.
 2. Go to `Edge Functions`.
 3. Open `Secrets`.
-4. Add a secret named exactly `OPENAI_API_KEY`.
-5. Paste the OpenAI API key as the value.
+4. Add a secret named exactly `GEMINI_API_KEY`.
+5. Paste the Gemini API key as the value.
 6. Deploy or redeploy `analyze-evidence` and `ask-assistant`.
 
 Assistant behavior:
 
-- Signed-in tenants get OpenAI-backed answers from `ask-assistant`.
+- Signed-in tenants get Gemini-backed answers from `ask-assistant`.
 - User and assistant messages are saved in `public.assistant_messages`.
 - The assistant can answer diverse tenant questions about rent increases, deposits, unpaid rent risk, contracts, evidence, market comparisons, moving costs, and utility estimates.
 - It should ask follow-up questions when required facts are missing and should not present legal guidance as definitive legal advice.
 - Guest/demo mode asks the user to sign in instead of showing a fake AI answer.
 
-If the assistant returns `openai_credit_balance_exhausted`, the OpenAI API organization has no prepaid API credits left. This is separate from ChatGPT plan usage and normally does not have an automatic reset date; add API credits in OpenAI Platform billing and retry after a few minutes.
+If the assistant returns `gemini_resource_exhausted`, the Gemini project has hit a free-tier quota or rate limit. Requests-per-day quotas reset at midnight Pacific Time; minute/token limits reset sooner.
 
 ## Pre-Release AI Provider Warning
 
@@ -128,17 +128,16 @@ supabase/functions/ask-assistant/index.ts
 
 Important dependency rule:
 
-- If only `ask-assistant` is moved to Gemini, chat can work on Gemini but document/evidence analysis may still fail on OpenAI quota.
-- If only `analyze-evidence` is moved to Gemini, document summaries can work on Gemini but chat may still fail on OpenAI quota.
-- To make the whole prototype work without OpenAI API credits, both functions should use the same configurable provider layer.
+- Both `ask-assistant` and `analyze-evidence` now use Gemini.
+- Chat and document analysis depend on the same `GEMINI_API_KEY`, but use separate model secrets so each path can be tuned independently.
+- To move to another provider later, preserve the same function contracts and database updates.
 
 Recommended future configuration:
 
 ```text
-AI_PROVIDER=gemini
 GEMINI_API_KEY=...
-GEMINI_CHAT_MODEL=gemini-2.5-flash
-GEMINI_DOCUMENT_MODEL=gemini-2.5-flash
+GEMINI_CHAT_MODEL=gemini-2.5-flash-lite
+GEMINI_DOCUMENT_MODEL=gemini-2.5-flash-lite
 ```
 
 Document analysis quota policy:
@@ -152,13 +151,13 @@ Document analysis quota policy:
 
 OpenAI billing rule:
 
-- The current OpenAI-backed evidence analysis requires OpenAI API billing/credits.
+- The app no longer needs OpenAI API credits while both functions use Gemini.
 - A normal ChatGPT Free/Plus/Pro account quota is not enough for this deployed app.
 - ChatGPT subscriptions and OpenAI API billing are separate systems.
 - ChatGPT personal usage credits are for supported ChatGPT/Codex/Work features and are not API credits for this app.
 - There is no supported way for a public website or Supabase Edge Function to spend the owner's normal ChatGPT message quota.
 
-For a no-card prototype, migrate both `analyze-evidence` and `ask-assistant` to Gemini Free Tier, then keep the conservative limits above. Before Google Play release, revisit provider privacy terms, explicit consent, rate limits, abuse controls, and paid production billing.
+For this no-card prototype, both `analyze-evidence` and `ask-assistant` use Gemini Free Tier-compatible defaults. Keep the conservative limits above. Before Google Play release, revisit provider privacy terms, explicit consent, rate limits, abuse controls, and paid production billing.
 
 ## Data Note
 

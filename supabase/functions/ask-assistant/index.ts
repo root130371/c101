@@ -21,13 +21,13 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_ASSISTANT_MODEL") || Deno.env.get("OPENAI_MODEL") || "gpt-5-mini";
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const model = Deno.env.get("GEMINI_CHAT_MODEL") || "gemini-2.5-flash-lite";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-  if (!apiKey) return json({ error: "OPENAI_API_KEY is not configured." }, 501);
+  if (!apiKey) return json({ error: "GEMINI_API_KEY is not configured." }, 501);
   if (!supabaseUrl || !serviceRoleKey || !anonKey) {
     return json({ error: "Supabase function environment is incomplete." }, 500);
   }
@@ -64,7 +64,7 @@ Deno.serve(async (request) => {
   });
 
   try {
-    const answer = await askOpenAI(apiKey, model, {
+    const answer = await askGemini(apiKey, model, {
       question,
       language,
       case_context: body.case_context || {},
@@ -130,62 +130,49 @@ async function insertAssistantMessage(supabaseUrl: string, serviceRoleKey: strin
   if (!response.ok) throw new Error(`Assistant message save failed: ${await response.text()}`);
 }
 
-async function askOpenAI(apiKey: string, model: string, context: Record<string, unknown>) {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+async function askGemini(apiKey: string, model: string, context: Record<string, unknown>) {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${apiKey}`,
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      model,
-      instructions: [
-        "You are Kiraci Kalkani, a tenant-side assistant for renters in Turkey.",
-        "Answer diverse tenant questions about rent increases, deposits, unpaid rent risk, contracts, evidence, moving costs, utility estimates, and landlord communication.",
-        "Use the provided case context, evidence summaries, nearby listing data, and recent chat history when relevant.",
-        "Do calculations explicitly from supplied numbers. If a calculation needs missing facts, ask concise follow-up questions and give a labelled rough estimate only when reasonable.",
-        "Do not claim to be a lawyer and do not present legal advice as definitive. For high-risk legal, eviction, lawsuit, or repeated nonpayment questions, explain practical risk and advise consulting a qualified Turkish lawyer or tenant association.",
-        "Do not invent statutes, court outcomes, live tariff prices, or government deadlines. Say when current official data is needed.",
-        "Return strict JSON only with keys: title, summary, guidance, draft, note, answer_text. Use the user's language."
-      ].join(" "),
-      text: {
-        format: {
-          type: "json_schema",
-          name: "tenant_assistant_answer",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              guidance: { type: "string" },
-              draft: { type: "string" },
-              note: { type: "string" },
-              answer_text: { type: "string" }
-            },
-            required: ["title", "summary", "guidance", "draft", "note", "answer_text"]
-          }
-        }
+      systemInstruction: {
+        parts: [{
+          text: [
+            "You are Kiraci Kalkani, a tenant-side assistant for renters in Turkey.",
+            "Answer diverse tenant questions about rent increases, deposits, unpaid rent risk, contracts, evidence, moving costs, utility estimates, and landlord communication.",
+            "Use the provided case context, evidence summaries, nearby listing data, and recent chat history when relevant.",
+            "Do calculations explicitly from supplied numbers. If a calculation needs missing facts, ask concise follow-up questions and give a labelled rough estimate only when reasonable.",
+            "Do not claim to be a lawyer and do not present legal advice as definitive. For high-risk legal, eviction, lawsuit, or repeated nonpayment questions, explain practical risk and advise consulting a qualified Turkish lawyer or tenant association.",
+            "Do not invent statutes, court outcomes, live tariff prices, or government deadlines. Say when current official data is needed.",
+            "Return JSON only with keys: title, summary, guidance, draft, note, answer_text. Use the user's language.",
+            "Do not include markdown, code fences, or commentary outside the JSON object."
+          ].join(" ")
+        }]
       },
-      input: [
+      contents: [
         {
           role: "user",
-          content: [{
-            type: "input_text",
+          parts: [{
             text: JSON.stringify(context)
           }]
         }
-      ]
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+        maxOutputTokens: 900
+      }
     })
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new AssistantError("openai_request_failed", `OpenAI assistant failed: ${text}`, 502, parseJsonObjectSafe(text));
+    throw new AssistantError("gemini_request_failed", `Gemini assistant failed: ${text}`, 502, parseJsonObjectSafe(text));
   }
   const result = await response.json();
-  const parsed = parseJsonObject(extractOutputText(result));
+  const parsed = parseJsonObject(extractGeminiText(result));
   const title = stringOrFallback(parsed.title, "Assistant answer");
   const summary = stringOrFallback(parsed.summary, "");
   const guidance = stringOrFallback(parsed.guidance, "");
@@ -214,12 +201,11 @@ function serviceHeaders(serviceRoleKey: string, jsonBody = false) {
   };
 }
 
-function extractOutputText(result: Record<string, unknown>) {
-  if (typeof result.output_text === "string") return result.output_text;
-  const output = Array.isArray(result.output) ? result.output : [];
-  return output
-    .flatMap((item: any) => Array.isArray(item.content) ? item.content : [])
-    .map((content: any) => content.text || "")
+function extractGeminiText(result: Record<string, unknown>) {
+  const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+  return candidates
+    .flatMap((candidate: any) => Array.isArray(candidate.content?.parts) ? candidate.content.parts : [])
+    .map((part: any) => part.text || "")
     .join("\n")
     .trim();
 }
@@ -229,7 +215,7 @@ function parseJsonObject(text: string) {
     return JSON.parse(text);
   } catch {
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("OpenAI did not return parseable JSON.");
+    if (!match) throw new Error("Gemini did not return parseable JSON.");
     return JSON.parse(match[0]);
   }
 }
@@ -261,15 +247,16 @@ class AssistantError extends Error {
 
 function normalizeAssistantError(error: unknown) {
   if (error instanceof AssistantError) {
-    const openaiCode = (error.details as any)?.error?.code;
-    if (openaiCode === "credit_balance_exhausted") {
+    const geminiStatus = (error.details as any)?.error?.status;
+    const geminiCode = (error.details as any)?.error?.code;
+    if (geminiStatus === "RESOURCE_EXHAUSTED" || geminiCode === 429) {
       return {
-        status: 402,
-        error: "AI credits are exhausted for the OpenAI API organization.",
-        error_code: "openai_credit_balance_exhausted",
-        recovery: "Add API credits in OpenAI Platform billing, then retry after a few minutes.",
-        reset: "This does not have a known automatic reset. It is a prepaid API credit balance, not a monthly free allowance.",
-        billing_url: "https://platform.openai.com/settings/organization/billing"
+        status: 429,
+        error: "Gemini free-tier quota or rate limit is exhausted.",
+        error_code: "gemini_resource_exhausted",
+        recovery: "Wait for the quota window to reset, reduce document/chat usage, or move the Gemini project to a paid tier.",
+        reset: "Gemini Requests Per Day quotas reset at midnight Pacific Time. Minute/token limits reset sooner.",
+        billing_url: "https://aistudio.google.com/"
       };
     }
     return {

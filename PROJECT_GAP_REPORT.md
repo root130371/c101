@@ -9,7 +9,7 @@ Use this rule before every release:
 - Frontend files changed (`index.html`, `styles.css`, `app.js`, `README.md`): push to GitHub. GitHub Pages redeploys the website.
 - Edge Function changed (`supabase/functions/**`): deploy Supabase functions again.
 - Database changed (`supabase/schema.sql` or SQL migrations): run the SQL in Supabase SQL Editor.
-- Secret changed (`OPENAI_API_KEY`, `OPENAI_MODEL`): usually no code deploy is needed, but redeploy the function if behavior looks stale.
+- Secret changed (`GEMINI_API_KEY`, `GEMINI_CHAT_MODEL`, `GEMINI_DOCUMENT_MODEL`): usually no code deploy is needed, but redeploy the function if behavior looks stale.
 
 Current function deploy commands:
 
@@ -21,13 +21,13 @@ npx.cmd supabase functions deploy ask-assistant --project-ref gxqcacrtntnfnakitd
 
 ## Current Status
 
-AI foundation is started. The app now has OpenAI-backed Supabase Edge Functions in code, local Supabase CLI setup through `npx.cmd`, frontend evidence upload calls `analyze-evidence` after remote upload, and the assistant calls `ask-assistant` for signed-in tenants. The remaining blocker is deploying the functions after Supabase login is complete.
+AI foundation is started. The app now has Gemini-backed Supabase Edge Functions in code, local Supabase CLI setup through `npx.cmd`, frontend evidence upload calls `analyze-evidence` after remote upload, and the assistant calls `ask-assistant` for signed-in tenants. The remaining blocker is testing the deployed functions with a real signed-in tenant account and uploaded evidence.
 
 ## Remaining Gaps And Focus
 
 1. Backend deployment verification
 
-   The OpenAI function must be deployed and tested with a real uploaded evidence file. Focus: deploy `analyze-evidence`, upload one bank receipt/photo, confirm `summary_tr`, `confidence`, and `extracted_json.ai` update in Supabase.
+   The Gemini function must be deployed and tested with a real uploaded evidence file. Focus: deploy `analyze-evidence`, upload one bank receipt/photo, confirm `summary_tr`, `confidence`, and `extracted_json.ai` update in Supabase.
 
 2. Evidence lifecycle
 
