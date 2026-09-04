@@ -94,7 +94,7 @@ Assistant behavior:
 - User and assistant messages are saved in `public.assistant_messages`.
 - The assistant can answer diverse tenant questions about rent increases, deposits, unpaid rent risk, contracts, evidence, market comparisons, moving costs, and utility estimates.
 - It should ask follow-up questions when required facts are missing and should not present legal guidance as definitive legal advice.
-- Guest/demo mode falls back to the local deterministic draft in `app.js`.
+- Guest/demo mode asks the user to sign in instead of showing a fake AI answer.
 
 ## Data Note
 

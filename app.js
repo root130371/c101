@@ -195,8 +195,8 @@ const i18n = {
     assistantReplySection: "Yanıt taslağı",
     assistantRiskNote: "Not",
     assistantWorking: "Asistan hazırlanıyor...",
-    assistantNeedsLogin: "AI asistan için giriş yapın. Şimdilik yerel taslak oluşturuldu.",
-    assistantUnavailable: "AI asistan yanıt veremedi; yerel taslak gösteriliyor.",
+    assistantNeedsLogin: "AI asistan için giriş yapın. Bu yanıt OpenAI destekli çalışır ve demo modunda yerel taslak göstermez.",
+    assistantUnavailable: "AI asistan yanıt veremedi. Aşağıdaki hata ayrıntısını kontrol edin.",
     chipRentIncrease: "Zam talebine cevap",
     chipDeposit: "Depozito kanıtı",
     chipMarketProof: "Emsal kira ile savun",
@@ -392,8 +392,8 @@ const i18n = {
     assistantReplySection: "Reply draft",
     assistantRiskNote: "Note",
     assistantWorking: "Assistant is preparing...",
-    assistantNeedsLogin: "Sign in to use the AI assistant. A local draft was created for now.",
-    assistantUnavailable: "The AI assistant could not respond; showing a local draft.",
+    assistantNeedsLogin: "Sign in to use the AI assistant. This answer is OpenAI-backed and no local draft is shown in demo mode.",
+    assistantUnavailable: "The AI assistant could not respond. Check the error detail below.",
     chipRentIncrease: "Reply to rent increase",
     chipDeposit: "Deposit proof",
     chipMarketProof: "Use market proof",
@@ -1394,37 +1394,6 @@ function assistantCaseContext() {
   };
 }
 
-function localAssistantAnswer() {
-  const current = Number($("#currentRent").value || 0);
-  const requested = Number($("#requestedRent").value || 0);
-  const cpi = Number($("#cpiRate").value || 0);
-  const max = Math.round(current * (1 + cpi / 100));
-  const evidenceCount = readEvidence().length;
-  const listingCount = readRentData().length;
-  const hasContract = hasContractEvidence();
-  const over = requested > max;
-  const summary = lang === "tr"
-    ? `Mevcut kira ${money(current)}, talep edilen kira ${money(requested)}. ${cpi}% TÜFE ortalamasına göre hesaplanan üst sınır ${money(max)}.`
-    : `Current rent is ${money(current)}, requested rent is ${money(requested)}. With a ${cpi}% CPI average, the calculated ceiling is ${money(max)}.`;
-  const evidence = lang === "tr"
-    ? `Kontrat: ${tr(hasContract ? "available" : "unavailable")}. Kanıt sayısı: ${evidenceCount}. Yakın kira kaydı: ${listingCount}.`
-    : `Contract: ${tr(hasContract ? "available" : "unavailable")}. Evidence items: ${evidenceCount}. Nearby rent records: ${listingCount}.`;
-  const reply = lang === "tr"
-    ? `Merhaba, kira artış talebinizi aldım. Hesapladığım üst sınır ${money(max)} görünüyor; talep edilen ${money(requested)} ${over ? "bu sınırın üzerinde" : "bu sınır içinde"} kalıyor. Değerlendirme için ödeme kanıtlarımı, kontratımı ve yakın kira kayıtlarını ayrı olarak paylaşabilirim.`
-    : `Hello, I received your rent increase request. My calculated ceiling is ${money(max)}; the requested ${money(requested)} appears ${over ? "above that level" : "within that level"}. I can share payment proof, my contract, and nearby rent records separately for review.`;
-  const note = lang === "tr"
-    ? "Bu taslak hukuki danışmanlık değildir; yüksek riskli durumda uzman görüşü alın."
-    : "This draft is not legal advice; get expert advice for high-risk situations.";
-  return {
-    title: tr("assistantAnswerTitle"),
-    summary,
-    guidance: evidence,
-    draft: reply,
-    note,
-    answer_text: [summary, evidence, reply, note].join("\n\n")
-  };
-}
-
 function paragraphHtml(value) {
   return escapeHtml(value || "").split(/\n{2,}/).map((part) => `<p>${part.replace(/\n/g, "<br>")}</p>`).join("");
 }
@@ -1445,13 +1414,20 @@ function renderAssistantAnswer(answer, statusMessage = "") {
   renderChecklist();
 }
 
+function renderAssistantNotice(title, message) {
+  $("#assistantAnswer").innerHTML = `<article class="assistant-response">
+    <div class="assistant-response-head"><i class="ph ph-warning-circle"></i><strong>${escapeHtml(title)}</strong></div>
+    <section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(message)}</section>
+  </article>`;
+  renderChecklist();
+}
+
 async function assistantReply() {
   const question = $("#questionBox").value.trim();
   if (!question) return;
 
-  const localAnswer = localAssistantAnswer();
   if (!supabaseClient || !currentUser) {
-    renderAssistantAnswer(localAnswer, tr("assistantNeedsLogin"));
+    renderAssistantNotice(tr("assistantEyebrow"), tr("assistantNeedsLogin"));
     return;
   }
 
@@ -1467,12 +1443,13 @@ async function assistantReply() {
       }
     });
     if (error || !data?.answer) {
-      renderAssistantAnswer(localAnswer, tr("assistantUnavailable"));
+      const message = error?.message || data?.error || tr("assistantUnavailable");
+      renderAssistantNotice(tr("assistantEyebrow"), `${tr("assistantUnavailable")}\n\n${message}`);
       return;
     }
     renderAssistantAnswer(data.answer);
-  } catch {
-    renderAssistantAnswer(localAnswer, tr("assistantUnavailable"));
+  } catch (error) {
+    renderAssistantNotice(tr("assistantEyebrow"), `${tr("assistantUnavailable")}\n\n${error.message || "Network error"}`);
   } finally {
     button.disabled = false;
   }
