@@ -236,7 +236,7 @@ button:disabled {
 }
 
 .brand-mark {
-  width: 78px;
+  width: 48px;
   height: 48px;
   display: grid;
   place-items: center;
@@ -249,20 +249,11 @@ button:disabled {
 }
 
 .brand-mark img {
-  width: 100%;
-  height: 100%;
+  width: 170%;
+  height: 170%;
   display: block;
-  object-fit: contain;
-}
-
-.welcome-copy .brand-mark {
-  width: min(260px, 100%);
-  height: 146px;
-  border-radius: 16px;
-}
-
-.welcome-copy .brand-mark img {
   object-fit: cover;
+  object-position: 50% 30%;
 }
 
 .brand span,
