@@ -12,7 +12,7 @@ const EVIDENCE_BUCKET = "evidence";
 
 const i18n = {
   tr: {
-    brand: "Kiracı Kalkanı",
+    brand: "Kira Asistanı",
     brandSub: "Türkiye kira asistanı",
     navDashboard: "Panel",
     navCalculator: "Kira artışı",
@@ -227,7 +227,7 @@ const i18n = {
     replyDraft: "Yanıt taslağı"
   },
   en: {
-    brand: "Tenant Shield",
+    brand: "Kira Assistant",
     brandSub: "Rental assistant for Turkey",
     navDashboard: "Dashboard",
     navCalculator: "Rent increase",
