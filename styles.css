@@ -29,12 +29,23 @@ html {
 
 body {
   margin: 0;
+  position: relative;
   background:
     radial-gradient(circle at 14% 10%, rgba(56, 189, 248, 0.18), transparent 28%),
     radial-gradient(circle at 86% 18%, rgba(16, 185, 129, 0.14), transparent 26%),
     linear-gradient(180deg, #f0f9ff 0%, #f8fafc 42%, #f7fee7 100%);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 44% / min(560px, 72vw) auto no-repeat;
+  opacity: 0.035;
 }
 
 ::-webkit-scrollbar {
@@ -211,6 +222,8 @@ button:disabled {
 }
 
 .app-shell {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 268px minmax(0, 1fr);
