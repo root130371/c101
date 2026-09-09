@@ -1822,4 +1822,17 @@ textarea {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .assistant-top {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assistant-compose {
+    grid-template-columns: 1fr;
+  }
+
+  .assistant-compose .primary {
+    width: 100%;
+  }
 }
