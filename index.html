@@ -7,7 +7,7 @@
     <title>Kira Asistanı</title>
     <link rel="icon" href="./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif" type="image/jpeg" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="./styles.css?v=20260910-new-logo" />
+    <link rel="stylesheet" href="./styles.css?v=20260910-simple-topnav" />
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body translate="no">
@@ -41,46 +41,30 @@
     </section>
 
     <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark"><img src="./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif" alt="Kira Asistanı logosu" /></div>
-          <div>
-            <strong data-i18n="brand">Kira Asistanı</strong>
-            <span data-i18n="brandSub">Türkiye kira asistanı</span>
-          </div>
-        </div>
-
-        <div class="language-switcher" aria-label="Dil seçimi">
-          <span class="language-icon" aria-hidden="true">Aa</span>
-          <button class="lang-option active" data-lang="tr">TR</button>
-          <button class="lang-option" data-lang="en">EN</button>
-          <button class="lang-apply" id="applyLanguage" data-i18n="applyLanguage">Uygula</button>
-        </div>
-
-        <nav class="nav" aria-label="Ana menü">
-          <a href="#dashboard" class="active" data-i18n="navDashboard">Panel</a>
-          <a href="#calculator" data-i18n="navCalculator">Kira artışı</a>
-          <a href="#contract" data-i18n="navContract">Kontrat</a>
-          <a href="#deposit" data-i18n="navDeposit">Kanıt kasası</a>
-          <a href="#market" data-i18n="navMarket">Yakın kiralar</a>
-          <a href="#account" data-i18n="navAccount">Hesap</a>
-          <a href="#admin" data-i18n="navAdmin">Admin</a>
-          <a href="#assistant" data-i18n="navAssistant">Asistan</a>
-        </nav>
-
-        <div class="source-note">
-          <strong data-i18n="dataStatusTitle">Veri durumu</strong>
-          <p data-i18n="dataStatusBody">Bu test sürümünde yakın kira verisi admin tarafından manuel girilir.</p>
-        </div>
-      </aside>
-
       <main>
         <header class="topbar">
-          <div>
-            <p class="eyebrow" data-i18n="topbarEyebrow">Genel bakış</p>
-            <h2 data-i18n="topbarTitle">Kiracı dosyanız</h2>
-          </div>
+          <a class="brand" href="#dashboard" aria-label="Kira Asistanı">
+            <span class="brand-mark"><img src="./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif" alt="Kira Asistanı logosu" /></span>
+            <span>
+              <strong data-i18n="brand">Kira Asistanı</strong>
+              <small data-i18n="brandSub">Türkiye kira asistanı</small>
+            </span>
+          </a>
+          <nav class="nav" aria-label="Ana menü">
+            <a href="#dashboard" class="active" data-i18n="navDashboard">Panel</a>
+            <a href="#calculator" data-i18n="navCalculator">Kira artışı</a>
+            <a href="#contract" data-i18n="navContract">Kontrat</a>
+            <a href="#deposit" data-i18n="navDeposit">Kanıt kasası</a>
+            <a href="#market" data-i18n="navMarket">Yakın kiralar</a>
+            <a href="#assistant" data-i18n="navAssistant">Asistan</a>
+          </nav>
           <div class="topbar-actions">
+            <div class="language-switcher" aria-label="Dil seçimi">
+              <span class="language-icon" aria-hidden="true">Aa</span>
+              <button class="lang-option active" data-lang="tr">TR</button>
+              <button class="lang-option" data-lang="en">EN</button>
+              <button class="lang-apply" id="applyLanguage" data-i18n="applyLanguage">Uygula</button>
+            </div>
             <a class="secondary link-button" href="#account" data-i18n="topbarAccount">Hesap</a>
             <a class="primary link-button" href="#deposit" data-i18n="topbarEvidence">Kanıt yükle</a>
           </div>
@@ -272,6 +256,6 @@
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./app.js?v=20260910-new-logo"></script>
+    <script src="./app.js?v=20260910-simple-topnav"></script>
   </body>
 </html>

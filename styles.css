@@ -42,13 +42,10 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 0;
   pointer-events: none;
-  background:
-    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 18vh / min(520px, 68vw) auto no-repeat,
-    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 58vh / min(520px, 68vw) auto no-repeat,
-    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 98vh / min(520px, 68vw) auto no-repeat;
-  opacity: 0.075;
+  background: url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") calc(100% + 120px) 76vh / min(760px, 86vw) auto no-repeat;
+  opacity: 0.055;
   mix-blend-mode: multiply;
 }
 
@@ -229,27 +226,16 @@ button:disabled {
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
-}
-
-.sidebar {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--ink);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
+  display: block;
 }
 
 .brand {
-  display: flex;
+  min-width: 210px;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
+  color: var(--ink);
+  text-decoration: none;
 }
 
 .brand-mark {
@@ -273,8 +259,7 @@ button:disabled {
   object-position: center;
 }
 
-.brand span,
-.source-note p {
+.brand small {
   display: block;
   color: var(--muted);
   font-size: 13px;
@@ -283,18 +268,18 @@ button:disabled {
 
 .language-switcher {
   display: grid;
-  grid-template-columns: 38px 1fr 1fr;
+  grid-template-columns: 32px auto auto auto;
   align-items: center;
   gap: 6px;
-  padding: 6px;
+  padding: 5px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.9);
 }
 
 .language-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 10px;
@@ -306,9 +291,9 @@ button:disabled {
 
 .lang-option,
 .lang-apply {
-  min-height: 32px;
+  min-height: 28px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   cursor: pointer;
   font-weight: 900;
 }
@@ -319,9 +304,9 @@ button:disabled {
 }
 
 .lang-apply {
-  grid-column: 1 / -1;
   background: var(--brand);
   color: #fff;
+  padding: 0 10px;
 }
 
 .lang-option.active {
@@ -336,15 +321,25 @@ button:disabled {
 }
 
 .nav {
-  display: grid;
-  gap: 6px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav a {
+  flex: 0 0 auto;
   color: #475569;
   text-decoration: none;
-  padding: 11px 12px;
-  border-radius: 10px;
+  padding: 9px 10px;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 700;
   transition: background 160ms ease, color 160ms ease;
 }
@@ -355,16 +350,10 @@ button:disabled {
   color: var(--brand-dark);
 }
 
-.source-note {
-  margin-top: auto;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f8fafc;
-}
-
 main {
-  padding: 0 28px 28px;
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 0 24px 28px;
   display: grid;
   gap: 18px;
 }
@@ -372,17 +361,17 @@ main {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 20;
-  min-height: 72px;
-  margin: 0 -28px;
-  padding: 12px 28px;
-  background: rgba(255, 255, 255, 0.86);
+  z-index: 95;
+  min-height: 76px;
+  margin: 0 -24px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(12px);
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
 }
 
 .topbar h2 {
@@ -396,6 +385,7 @@ main {
 .topbar-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
 }
 
@@ -409,6 +399,7 @@ main {
 }
 
 .hero-band {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
   gap: 24px;
@@ -420,6 +411,24 @@ main {
     linear-gradient(135deg, rgba(2, 132, 199, 0.96), rgba(15, 118, 110, 0.93), rgba(124, 58, 237, 0.86)),
     #0284c7;
   overflow: hidden;
+}
+
+.hero-band::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -120px;
+  width: min(460px, 54vw);
+  aspect-ratio: 16 / 9;
+  background: url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center / contain no-repeat;
+  opacity: 0.16;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.hero-band > * {
+  position: relative;
+  z-index: 1;
 }
 
 .eyebrow {
@@ -1720,21 +1729,21 @@ textarea {
 }
 
 @media (max-width: 980px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-    height: auto;
-  }
-
   main {
     padding-top: 0;
   }
 
+  .topbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
   .nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
   }
 
   .hero-band,
@@ -1759,8 +1768,6 @@ textarea {
   .topbar {
     margin: 0 -14px;
     padding: 12px 14px;
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .welcome-gate {
@@ -1788,8 +1795,7 @@ textarea {
   .evidence-grid,
   .contract-field-grid,
   .scanner-fields,
-  .form-grid,
-  .nav {
+  .form-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1821,6 +1827,19 @@ textarea {
   .section-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .language-switcher {
+    grid-template-columns: 32px 1fr 1fr auto;
+  }
+
+  .assistant-panel {
+    padding: 0;
   }
 
   .assistant-top {
