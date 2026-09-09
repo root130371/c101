@@ -7,7 +7,7 @@
     <title>Kira Asistanı</title>
     <link rel="icon" href="./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif" type="image/jpeg" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="./styles.css?v=20260910-logo-page-watermark" />
+    <link rel="stylesheet" href="./styles.css?v=20260910-teal-chat" />
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body translate="no">
@@ -247,28 +247,31 @@
           </div>
         </section>
 
-        <section id="assistant" class="panel two-col">
-          <div>
-            <p class="eyebrow" data-i18n="assistantEyebrow">Asistan</p>
-            <div class="section-title inline"><div class="section-icon assistant"><i class="ph ph-sparkle"></i></div><h2 data-i18n="assistantTitle">Cevap taslağı hazırlayın</h2></div>
-            <div class="checklist" id="packetChecklist"></div>
-          </div>
+        <section id="assistant" class="panel assistant-panel">
           <div class="assistant-box">
+            <div class="assistant-top">
+              <div class="section-title">
+                <div class="section-icon assistant"><i class="ph ph-chat-teardrop-text"></i></div>
+                <div>
+                  <p class="eyebrow" data-i18n="assistantEyebrow">Asistan</p>
+                  <h2 data-i18n="assistantTitle">Cevap taslağı hazırlayın</h2>
+                </div>
+              </div>
+              <button id="copyAssistant" class="secondary" type="button" data-i18n="copyDraft">Kopyala</button>
+            </div>
+            <div id="assistantAnswer" class="answer"></div>
             <div class="prompt-chips" id="promptChips" aria-label="Asistan önerileri"></div>
             <div class="assistant-compose">
               <textarea id="questionBox"></textarea>
-              <div class="assistant-actions">
-                <button id="askAssistant" class="primary" data-i18n="draftAnswer">Yanıt taslağı oluştur</button>
-                <button id="copyAssistant" class="secondary" type="button" data-i18n="copyDraft">Kopyala</button>
-              </div>
+              <button id="askAssistant" class="primary" data-i18n="draftAnswer">Gönder</button>
             </div>
-            <div id="assistantAnswer" class="answer"></div>
+            <div class="checklist hidden" id="packetChecklist"></div>
           </div>
         </section>
       </main>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./app.js?v=20260910-logo-page-watermark"></script>
+    <script src="./app.js?v=20260910-teal-chat"></script>
   </body>
 </html>

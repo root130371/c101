@@ -201,9 +201,9 @@ const i18n = {
     editListing: "Düzenle",
     deleteListing: "Sil",
     assistantEyebrow: "Asistan",
-    assistantTitle: "Cevap taslağı hazırlayın",
+    assistantTitle: "Sade kira sohbeti",
     questionDefault: "Ev sahibim kiranın 29.000 TL olması gerektiğini söylüyor. Nasıl cevap hazırlamalıyım?",
-    draftAnswer: "Yanıt taslağı oluştur",
+    draftAnswer: "Gönder",
     copyDraft: "Kopyala",
     copiedDraft: "Kopyalandı",
     assistantAnswerTitle: "Taslak yaklaşım",
@@ -416,9 +416,9 @@ const i18n = {
     editListing: "Modify",
     deleteListing: "Delete",
     assistantEyebrow: "Assistant",
-    assistantTitle: "Prepare a reply draft",
+    assistantTitle: "Simple rent chat",
     questionDefault: "My landlord says the rent should be 29,000 TL. How should I prepare a reply?",
-    draftAnswer: "Create reply draft",
+    draftAnswer: "Send",
     copyDraft: "Copy",
     copiedDraft: "Copied",
     assistantAnswerTitle: "Draft approach",
@@ -1591,11 +1591,11 @@ function renderAssistantAnswer(answer, statusMessage = "") {
   const note = answer?.note || "";
   $("#assistantAnswer").innerHTML = `<article class="assistant-response">
     <div class="assistant-response-head"><i class="ph ph-sparkle"></i><strong>${escapeHtml(answer?.title || tr("assistantAnswerTitle"))}</strong></div>
-    ${statusMessage ? `<section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(statusMessage)}</section>` : ""}
-    ${summary ? `<section><span>${tr("assistantSummary")}</span>${paragraphHtml(summary)}</section>` : ""}
-    ${guidance ? `<section><span>${tr("assistantGuidance")}</span>${paragraphHtml(guidance)}</section>` : ""}
-    ${draft ? `<section><span>${tr("assistantReplySection")}</span>${paragraphHtml(draft)}</section>` : ""}
-    ${note ? `<section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(note)}</section>` : ""}
+    ${statusMessage ? `<div class="assistant-bubble assistant-note"><strong>${tr("assistantRiskNote")}</strong>${paragraphHtml(statusMessage)}</div>` : ""}
+    ${summary ? `<div class="assistant-bubble"><strong>${tr("assistantSummary")}</strong>${paragraphHtml(summary)}</div>` : ""}
+    ${guidance ? `<div class="assistant-bubble"><strong>${tr("assistantGuidance")}</strong>${paragraphHtml(guidance)}</div>` : ""}
+    ${draft ? `<div class="assistant-bubble"><strong>${tr("assistantReplySection")}</strong>${paragraphHtml(draft)}</div>` : ""}
+    ${note ? `<div class="assistant-bubble assistant-note"><strong>${tr("assistantRiskNote")}</strong>${paragraphHtml(note)}</div>` : ""}
   </article>`;
   renderChecklist();
 }
@@ -1603,7 +1603,7 @@ function renderAssistantAnswer(answer, statusMessage = "") {
 function renderAssistantNotice(title, message) {
   $("#assistantAnswer").innerHTML = `<article class="assistant-response">
     <div class="assistant-response-head"><i class="ph ph-warning-circle"></i><strong>${escapeHtml(title)}</strong></div>
-    <section class="assistant-note"><span>${tr("assistantRiskNote")}</span>${paragraphHtml(message)}</section>
+    <div class="assistant-bubble assistant-note"><strong>${tr("assistantRiskNote")}</strong>${paragraphHtml(message)}</div>
   </article>`;
   renderChecklist();
 }
