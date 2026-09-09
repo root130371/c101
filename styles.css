@@ -42,10 +42,14 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 90;
   pointer-events: none;
-  background: url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 44% / min(560px, 72vw) auto no-repeat;
-  opacity: 0.035;
+  background:
+    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 18vh / min(520px, 68vw) auto no-repeat,
+    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 58vh / min(520px, 68vw) auto no-repeat,
+    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 98vh / min(520px, 68vw) auto no-repeat;
+  opacity: 0.075;
+  mix-blend-mode: multiply;
 }
 
 ::-webkit-scrollbar {
