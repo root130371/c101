@@ -45,9 +45,9 @@ body::before {
   z-index: 90;
   pointer-events: none;
   background:
-    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 18vh / min(520px, 68vw) auto no-repeat,
-    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 58vh / min(520px, 68vw) auto no-repeat,
-    url("./logo/Gemini_Generated_Image_ick9mtick9mtick9.jfif") center 98vh / min(520px, 68vw) auto no-repeat;
+    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 18vh / min(520px, 68vw) auto no-repeat,
+    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 58vh / min(520px, 68vw) auto no-repeat,
+    url("./logo/Gemini_Generated_Image_kirxwbkirxwbkirx.jfif") center 98vh / min(520px, 68vw) auto no-repeat;
   opacity: 0.075;
   mix-blend-mode: multiply;
 }
@@ -266,11 +266,11 @@ button:disabled {
 }
 
 .brand-mark img {
-  width: 170%;
-  height: 170%;
+  width: 150%;
+  height: 150%;
   display: block;
-  object-fit: cover;
-  object-position: 50% 30%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .brand span,
