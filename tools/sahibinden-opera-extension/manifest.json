@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "C101 Sahibinden Importer",
+  "description": "Collect visible Sahibinden rental listing fields into a JSON batch for C101 admin imports.",
+  "version": "0.1.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "C101 Sahibinden"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.sahibinden.com/*", "http://*.sahibinden.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": ["https://*.sahibinden.com/*", "http://*.sahibinden.com/*"],
+  "permissions": ["clipboardWrite", "storage", "tabs"]
+}

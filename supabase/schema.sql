@@ -71,6 +71,36 @@ create table if not exists public.rent_listings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.rental_imports (
+  id uuid primary key default gen_random_uuid(),
+  created_by uuid references auth.users(id) on delete set null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  title text not null,
+  rent numeric not null,
+  size numeric,
+  building_age numeric,
+  rooms text,
+  floor text,
+  heating text,
+  deposit numeric,
+  city text not null default 'İzmir',
+  district text not null default 'Narlıdere',
+  neighborhood text,
+  address text,
+  lat numeric,
+  lng numeric,
+  source text,
+  source_url text,
+  proof text,
+  description text,
+  image_urls text[] not null default '{}'::text[],
+  raw_json jsonb not null default '{}'::jsonb,
+  approved_listing_id uuid references public.rent_listings(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.assistant_messages (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -108,6 +138,7 @@ alter table public.properties enable row level security;
 alter table public.evidence_items enable row level security;
 alter table public.extraction_jobs enable row level security;
 alter table public.rent_listings enable row level security;
+alter table public.rental_imports enable row level security;
 alter table public.assistant_messages enable row level security;
 
 create policy "profiles own read" on public.profiles
@@ -137,6 +168,20 @@ create policy "rent listings admin write" on public.rent_listings
   ) with check (
     exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
   );
+
+create policy "rental imports admin all" on public.rental_imports
+  for all using (
+    exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
+  ) with check (
+    exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
+  );
+
+create index if not exists rental_imports_status_created_at_idx
+  on public.rental_imports (status, created_at desc);
+
+create unique index if not exists rental_imports_source_url_unique_idx
+  on public.rental_imports (source_url)
+  where source_url is not null;
 
 create policy "evidence files own read" on storage.objects
   for select using (bucket_id = 'evidence' and auth.uid()::text = (storage.foldername(name))[1]);

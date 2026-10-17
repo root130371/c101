@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>C101 Sahibinden</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <strong>C101 Sahibinden</strong>
+        <span id="status">Hazır</span>
+      </header>
+
+      <section>
+        <label for="urls">URL kuyruğu</label>
+        <textarea id="urls" placeholder="Her satıra veya boşlukla Sahibinden ilan URL'leri"></textarea>
+        <div class="row">
+          <button id="saveQueue">Kuyruğu kaydet</button>
+          <button id="openNext">Sonrakini aç</button>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <div>
+          <span id="queueCount">0</span>
+          <small>kuyruk</small>
+        </div>
+        <div>
+          <span id="batchCount">0</span>
+          <small>toplanan</small>
+        </div>
+      </section>
+
+      <section>
+        <div class="row">
+          <button id="extract">Bu ilanı al</button>
+          <button id="extractNext">Al ve sonrakini aç</button>
+        </div>
+        <div class="row">
+          <button id="copyJson">JSON kopyala</button>
+          <button id="clearBatch">Batch temizle</button>
+        </div>
+        <button id="clearAll" class="danger">Her şeyi temizle</button>
+      </section>
+
+      <pre id="preview"></pre>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

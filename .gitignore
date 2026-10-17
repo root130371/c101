@@ -2,3 +2,10 @@ node_modules/
 .env
 .env.*
 supabase/.temp/
+
+!.env.example
+.edge-profile/
+*.jks
+*.keystore
+*.p12
+*.p8
