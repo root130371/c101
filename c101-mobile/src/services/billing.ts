@@ -64,7 +64,9 @@ export async function loadBillingEntitlement(userId?: string): Promise<BillingEn
     .from("billing_subscriptions")
     .select("plan_key,status,processor,current_period_end")
     .eq("user_id", userId)
-    .in("status", ["active", "trialing", "past_due"])
+    .eq("plan_key", "tenant_plus")
+    .in("status", ["active", "trialing"])
+    .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

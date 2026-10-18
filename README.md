@@ -428,3 +428,8 @@ Demo admin login:
 ## Run
 
 Open `index.html` directly in a browser.
+
+
+## Store billing checkpoint (October 18, 2026)
+
+See [billing deployment and Android test instructions](docs/BILLING_SETUP.md). The purchase/restore sync and authenticated RevenueCat webhook are implemented locally. Activation requires restoring the inactive Supabase project and configuring the owner's RevenueCat/Play/Expo accounts. Paid access is not yet verified live.

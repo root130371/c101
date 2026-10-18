@@ -5853,3 +5853,15 @@ Next stages:
 4. Create an EAS Android development/internal test build. Expo Go is not enough for store billing.
 5. Test purchase/restore flow through Google Play testing.
 6. Add backend webhook/sync function so RevenueCat purchase events update Supabase `billing_subscriptions` automatically.
+
+
+## 2026-10-18 - Payment Stage 2C: verified entitlement sync and build preparation
+
+- Preserved the prior uncommitted mobile app and backend work in checkpoint commit 7e34f3a on work/c101-billing-20261017. Browser profiles, environment files and signing keys are excluded. A source-only ZIP backup also exists in the local temporary directory.
+- Added sync-store-billing (authenticated user only) and revenuecat-webhook (mandatory shared Authorization header). Both query RevenueCat instead of trusting client/event entitlement claims. Transfers reconcile both identities.
+- Added an idempotent service-role-only SQL sync with one provider row per user, event audit deduplication and timestamp ordering. Manual subscriptions are preserved. Expiration, refunds and sandbox restrictions are handled; grace periods keep access.
+- Purchase and Restore now request server verification and distinguish pending verification from success. Completed payments direct the user to Restore rather than another purchase. Fixed repeated SDK configure calls during account changes.
+- Fixed missing expiry checks in the app and both AI functions. Added APK preview and Play internal-testing build profiles; final owner-controlled package/project identifiers are required before native builds.
+- Restricted GitHub Pages artifacts to actual website assets. Added billing and mobile CI checks plus PostgreSQL migration/permissions regression checks.
+- Cloud inspection: project gxqcacrtntnfnakitdaf reports INACTIVE. Existing deployed functions are analyze-evidence, ask-assistant and scrape-rental-listing. RevenueCat secrets and billing functions are absent. No new cloud changes or real purchases have been performed.
+- Remaining: restore project, inspect deployed schema, apply billing SQL, configure RevenueCat/Play/Expo, deploy functions, build native test app, and complete purchase/restore/expiry/transfer/usage acceptance tests. Existing check-then-increment usage accounting must become atomic before concurrent paid traffic. Details: docs/BILLING_SETUP.md.

@@ -290,7 +290,7 @@ async function incrementUsage(
 }
 
 async function fetchActivePlan(supabaseUrl: string, serviceRoleKey: string, userId: string): Promise<PlanKey> {
-  const url = `${supabaseUrl}/rest/v1/billing_subscriptions?user_id=eq.${encodeURIComponent(userId)}&status=in.(active,trialing)&select=plan_key,current_period_end&order=created_at.desc&limit=1`;
+  const url = `${supabaseUrl}/rest/v1/billing_subscriptions?user_id=eq.${encodeURIComponent(userId)}&plan_key=eq.tenant_plus&status=in.(active,trialing)&or=(current_period_end.is.null,current_period_end.gt.${encodeURIComponent(new Date().toISOString())})&select=plan_key,current_period_end&order=created_at.desc&limit=1`;
   const response = await fetch(url, { headers: serviceHeaders(serviceRoleKey) });
   if (!response.ok) throw new Error(`Billing lookup failed: ${await response.text()}`);
   const rows = await response.json();

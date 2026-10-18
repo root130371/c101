@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { supabase } from "../lib/supabase";
 
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 
@@ -14,6 +15,7 @@ export type StoreBillingStatus = {
 export type StorePurchaseResult = {
   active: boolean;
   canceled?: boolean;
+  pendingSync?: boolean;
   message?: string;
   productId?: string;
 };
@@ -21,24 +23,30 @@ export type StorePurchaseResult = {
 const entitlementId = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID || "tenant_plus";
 
 let configuredForUserId: string | null = null;
+let configured = false;
+let identityQueue: Promise<void> = Promise.resolve();
 
 export async function loadStoreBillingStatus(userId?: string): Promise<StoreBillingStatus> {
   const ready = await ensureStoreBillingReady(userId);
   if (!ready.available) return ready;
 
-  const Purchases = await loadPurchasesSdk();
-  const [customerInfo, activePackage] = await Promise.all([
-    Purchases.getCustomerInfo(),
-    loadTenantPlusPackage(),
-  ]);
+  try {
+    const Purchases = await loadPurchasesSdk();
+    const [customerInfo, activePackage] = await Promise.all([
+      Purchases.getCustomerInfo(),
+      loadTenantPlusPackage(),
+    ]);
 
-  return {
-    active: hasTenantPlusEntitlement(customerInfo),
-    available: true,
-    packageId: activePackage?.identifier,
-    platform: platformName(),
-    price: activePackage?.product.priceString,
-  };
+    return {
+      active: hasTenantPlusEntitlement(customerInfo),
+      available: true,
+      packageId: activePackage?.identifier,
+      platform: platformName(),
+      price: activePackage?.product.priceString,
+    };
+  } catch {
+    return { active: false, available: false, platform: platformName(), reason: "Store connection is temporarily unavailable. Please retry." };
+  }
 }
 
 export async function purchaseTenantPlus(userId?: string): Promise<StorePurchaseResult> {
@@ -62,7 +70,7 @@ export async function purchaseTenantPlus(userId?: string): Promise<StorePurchase
   try {
     const result = await Purchases.purchasePackage(tenantPackage);
     return {
-      active: hasTenantPlusEntitlement(result.customerInfo),
+      ...await verifiedPurchase(hasTenantPlusEntitlement(result.customerInfo), true),
       productId: result.productIdentifier,
     };
   } catch (error) {
@@ -89,7 +97,7 @@ export async function restoreTenantPlus(userId?: string): Promise<StorePurchaseR
   const Purchases = await loadPurchasesSdk();
   const customerInfo = await Purchases.restorePurchases();
   return {
-    active: hasTenantPlusEntitlement(customerInfo),
+    ...await verifiedPurchase(hasTenantPlusEntitlement(customerInfo)),
   };
 }
 
@@ -103,6 +111,8 @@ async function ensureStoreBillingReady(userId?: string): Promise<StoreBillingSta
     };
   }
 
+  if (!userId) return { active: false, available: false, platform: platformName(), reason: "Sign in before using store billing." };
+
   const apiKey = revenueCatApiKey();
   if (!apiKey) {
     return {
@@ -115,13 +125,18 @@ async function ensureStoreBillingReady(userId?: string): Promise<StoreBillingSta
 
   try {
     const Purchases = await loadPurchasesSdk();
-    if (configuredForUserId !== userId) {
-      Purchases.configure({
-        apiKey,
-        appUserID: userId,
-      } as any);
-      configuredForUserId = userId || null;
-    }
+    // Configure once; logIn switches accounts without repeated SDK configuration.
+    const identity = identityQueue.catch(() => {}).then(async () => {
+      if (!configured) {
+        Purchases.configure({ apiKey, appUserID: userId });
+        configured = true;
+      } else if (configuredForUserId !== userId) {
+        await Purchases.logIn(userId);
+      }
+      configuredForUserId = userId;
+    });
+    identityQueue = identity;
+    await identity;
     return {
       active: false,
       available: true,
@@ -141,9 +156,10 @@ async function loadTenantPlusPackage(): Promise<PurchasesPackage | null> {
   const Purchases = await loadPurchasesSdk();
   const offerings = await Purchases.getOfferings();
   const availablePackages = offerings.current?.availablePackages || [];
-  return availablePackages.find((item) => item.packageType === "MONTHLY")
-    || availablePackages[0]
-    || null;
+  const productId = process.env.EXPO_PUBLIC_REVENUECAT_PRODUCT_ID;
+  return availablePackages.find((item) => productId
+    ? item.product.identifier === productId
+    : item.packageType === "MONTHLY") || null;
 }
 
 async function loadPurchasesSdk() {
@@ -179,4 +195,18 @@ function revenueCatApiKey() {
 function isPurchaseCancelled(error: unknown) {
   const value = error as { code?: string; userCancelled?: boolean };
   return Boolean(value?.userCancelled || value?.code === "PURCHASE_CANCELLED_ERROR");
+}
+
+async function verifiedPurchase(storeActive: boolean, purchased = false): Promise<StorePurchaseResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke("sync-store-billing", { body: {} });
+    if (error || !data?.ok) throw new Error("Verification pending");
+    return { active: data.active === true, pendingSync: (purchased || storeActive) && data.active !== true };
+  } catch {
+    // A completed payment must not invite another purchase when verification is delayed.
+    return { active: false, pendingSync: purchased || storeActive,
+      message: storeActive
+        ? "Purchase received. Access verification is pending; use Restore to retry."
+        : "Subscription verification is unavailable. Please retry Restore." };
+  }
 }

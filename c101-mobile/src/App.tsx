@@ -1,4 +1,4 @@
-﻿import { StatusBar } from "expo-status-bar";
+import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Component, type ReactNode, useEffect, useMemo, useState } from "react";
 import {
@@ -2892,14 +2892,22 @@ function AccountPanel({
     try {
       const purchase = await purchaseTenantPlus(auth.user.id);
       if (purchase.active) {
+        setBilling(await loadBillingEntitlement(auth.user.id));
+        setUsageCounters(await loadUsageCounters(auth.user.id));
         setStoreBilling((current) => ({ ...current, active: true }));
         setBillingMessage(
           text(
             language,
-            "Store purchase succeeded. Next backend sync will connect this purchase to Supabase limits.",
+            "Purchase verified. Tenant Plus access is ready.",
             "Mağaza satın alımı başarılı. Sonraki backend senkronizasyonu bu satın alımı Supabase limitlerine bağlayacak.",
           ),
         );
+        return;
+      }
+      if (purchase.pendingSync) {
+        setBillingMessage(text(language,
+          "Purchase received. Access verification is pending. Use Restore to retry without purchasing again.",
+          "Sat?n alma al?nd?. Eri?im do?rulamas? bekleniyor. Tekrar sat?n almadan Geri Y?kle ile deneyin."));
         return;
       }
       if (purchase.canceled) {
@@ -2929,10 +2937,12 @@ function AccountPanel({
     setBillingMessage("");
     try {
       const restore = await restoreTenantPlus(auth.user.id);
+      setBilling(await loadBillingEntitlement(auth.user.id));
+      setUsageCounters(await loadUsageCounters(auth.user.id));
       setStoreBilling((current) => ({ ...current, active: restore.active }));
       setBillingMessage(
         restore.active
-          ? text(language, "Store purchase restored. Backend entitlement sync is the next stage.", "Mağaza satın alımı geri yüklendi. Backend yetki senkronizasyonu sonraki aşama.")
+          ? text(language, "Purchase restored and access verified.", "Mağaza satın alımı geri yüklendi. Backend yetki senkronizasyonu sonraki aşama.")
           : text(language, restore.message || "No active store purchase was found.", restore.message || "Aktif mağaza satın alımı bulunamadı."),
       );
     } catch (error) {

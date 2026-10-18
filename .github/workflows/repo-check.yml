@@ -2,7 +2,7 @@ name: Repository checks
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "work/c101-billing-*"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -32,3 +32,44 @@ jobs:
 
       - name: Check package metadata
         run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('package-lock.json','utf8'))"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: c101-mobile/package-lock.json
+      - name: Billing regression tests
+        run: node --test tests/billing.test.mjs
+      - name: Install mobile dependencies
+        run: npm ci --prefix c101-mobile
+      - name: Mobile typecheck
+        run: npm run typecheck --prefix c101-mobile
+
+  billing-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify billing SQL and service-role isolation
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/billing-db-setup.sql
+          -f supabase/upgrade_billing_foundation.sql
+          -f supabase/upgrade_revenuecat_sync.sql
+          -f supabase/upgrade_billing_foundation.sql
+          -f supabase/upgrade_revenuecat_sync.sql
+          -f tests/billing-db.sql

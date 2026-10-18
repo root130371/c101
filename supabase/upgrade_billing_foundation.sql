@@ -66,36 +66,45 @@ alter table public.usage_counters enable row level security;
 alter table public.billing_events enable row level security;
 alter table public.billing_upgrade_requests enable row level security;
 
+drop policy if exists "billing subscriptions own read" on public.billing_subscriptions;
 create policy "billing subscriptions own read" on public.billing_subscriptions
   for select using (user_id = auth.uid());
 
+drop policy if exists "billing subscriptions admin read" on public.billing_subscriptions;
 create policy "billing subscriptions admin read" on public.billing_subscriptions
   for select using (
     exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
   );
 
+drop policy if exists "usage counters own read" on public.usage_counters;
 create policy "usage counters own read" on public.usage_counters
   for select using (user_id = auth.uid());
 
+drop policy if exists "usage counters admin read" on public.usage_counters;
 create policy "usage counters admin read" on public.usage_counters
   for select using (
     exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
   );
 
+drop policy if exists "billing events own read" on public.billing_events;
 create policy "billing events own read" on public.billing_events
   for select using (user_id = auth.uid());
 
+drop policy if exists "billing events admin read" on public.billing_events;
 create policy "billing events admin read" on public.billing_events
   for select using (
     exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')
   );
 
+drop policy if exists "billing upgrade requests own read" on public.billing_upgrade_requests;
 create policy "billing upgrade requests own read" on public.billing_upgrade_requests
   for select using (user_id = auth.uid());
 
+drop policy if exists "billing upgrade requests own insert" on public.billing_upgrade_requests;
 create policy "billing upgrade requests own insert" on public.billing_upgrade_requests
   for insert with check (user_id = auth.uid() and status = 'pending');
 
+drop policy if exists "billing upgrade requests admin read" on public.billing_upgrade_requests;
 create policy "billing upgrade requests admin read" on public.billing_upgrade_requests
   for select using (
     exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin')

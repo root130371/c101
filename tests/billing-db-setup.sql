@@ -1,0 +1,10 @@
+create role anon;
+create role authenticated;
+create role service_role bypassrls;
+create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql as 'select null::uuid';
+create table public.profiles(id uuid primary key, role text);
+grant usage on schema public, auth to service_role;
+grant select on auth.users to service_role;
+alter default privileges in schema public grant all on tables to service_role;
