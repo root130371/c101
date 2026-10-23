@@ -4932,7 +4932,7 @@ During testing, the admin paste importer showed `No valid listing rows found`.
 Fix applied:
 
 - made rental import parser more tolerant of BOM/curly quotes;
-- added Turkish header aliases such as `baslik`, `fiyat`, `kira`, `ilçe`, `mahalle`, `açiklama`, `ilan linki`;
+- added Turkish header aliases such as `baslik`, `fiyat`, `kira`, `ilï¿½e`, `mahalle`, `aï¿½iklama`, `ilan linki`;
 - improved numeric parsing for values like `25.000 TL`;
 - added live valid-row preview in the admin import panel;
 - disabled `Stage listings` until at least one valid row is detected;
@@ -5877,3 +5877,8 @@ Validation: 20 billing/quota/handler tests, one 40-session database concurrency 
 ## 2026-10-23 - Accurate account usage and outage recovery
 
 The account screen now distinguishes unavailable usage from zero use, filters counters by each metric's UTC period, and displays verified plan limits after upgrades/expiry. Added refresh controls, recoverable account loading and account-identity isolation. Unknown plans no longer appear as active Free access. Twelve regression tests cover data failures and period/subscription transitions; mobile TypeScript passed. Supabase still reports INACTIVE; no deployment or device/store acceptance performed.
+
+
+## 2026-10-23 - Backend recovery and live verification
+
+Restored existing Supabase project, applied billing/quota migrations and deployed AI/billing functions. Corrected missing owner-only extraction-job INSERT policy; verified with isolated SQL and live upload. Authenticated live chat and generated-PDF analysis succeeded with one allowance each; disposable fixtures removed. Billing remains unavailable until RevenueCat secrets are configured. Fixed native callback rewriting/old-IP fallback and allowed the existing app scheme. All38 local regressions passed; native Google/store acceptance remains pending. Source checkpoint98a8935 is pushed with passing CI. See docs/DEPLOYMENT_2026-10-23.md.

@@ -4,12 +4,12 @@ The app now requests server verification after purchase and restore. The server 
 
 ## Current external state
 
-Supabase project `gxqcacrtntnfnakitdaf` reported `INACTIVE` on October 17. Its deployed function list contains `analyze-evidence`, `ask-assistant`, and `scrape-rental-listing`; neither billing function is deployed. RevenueCat server secrets are absent. No store purchase, native build, or production activation has been verified. This checkpoint does not assert that the app is ready for paying customers.
+On October 23 the existing project was restored to `ACTIVE_HEALTHY`; billing/quota migrations and updated AI/billing functions were deployed. Live chat, PDF analysis, uploads, authentication guards and quota enforcement passed disposable-fixture checks. RevenueCat/store secrets remain unconfigured, so billing verification returns unavailable and real payments are not live. See [the deployment record](DEPLOYMENT_2026-10-23.md) for evidence and limits.
 
 ## Database and function deployment
 
 1. Restore the existing project in the Supabase dashboard. Preserve its data and settings.
-2. Run `supabase/upgrade_billing_foundation.sql`, then `supabase/upgrade_revenuecat_sync.sql` in the SQL editor. Then apply `supabase/upgrade_atomic_usage.sql` before deploying the updated AI functions. All three are safe to rerun. Do not rerun the full initial schema over an existing database.
+2. Run `supabase/upgrade_billing_foundation.sql`, then `supabase/upgrade_revenuecat_sync.sql` in the SQL editor. Then apply `supabase/upgrade_atomic_usage.sql` and `supabase/upgrade_evidence_job_policy.sql` before deploying the updated AI functions. All four are safe to rerun. Do not rerun the full initial schema over an existing database.
 3. Set Edge Function secrets using the dashboard or an ignored env file: `REVENUECAT_SECRET_API_KEY` (server secret key supporting API v1), `REVENUECAT_ENTITLEMENT_ID=tenant_plus`, and `REVENUECAT_WEBHOOK_AUTHORIZATION` (a long random value, including the `Bearer ` prefix). Never use `EXPO_PUBLIC_` for server secrets. For isolated sandbox testers only, set `REVENUECAT_ALLOW_SANDBOX=true`; keep it false/unset for production. Do not reuse production accounts for sandbox purchases.
 4. From the repository root, deploy:
 
@@ -31,7 +31,7 @@ npx supabase functions deploy analyze-evidence --project-ref gxqcacrtntnfnakitda
 
 ## Acceptance checks before enabling paid access
 
-- Run `node --test tests/billing.test.mjs tests/usage.test.mjs` with Node 24 and `npm run typecheck --prefix c101-mobile`.
+- Run `node --test tests/billing.test.mjs tests/usage.test.mjs tests/mobile-usage.test.mjs tests/auth-redirect.test.mjs` with Node 24 and `npm run typecheck --prefix c101-mobile`.
 - Verify missing/wrong webhook authorization is rejected and a RevenueCat test event returns success.
 - Purchase on a license tester: one provider row appears, Plus limits become available, and Restore recovers access after reinstall.
 - Delay the verification endpoint: the app reports pending verification and directs the user to Restore, without prompting another purchase or creating a manual request for a completed payment.

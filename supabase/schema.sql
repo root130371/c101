@@ -154,7 +154,13 @@ create policy "extraction own read" on public.extraction_jobs
   for select using (user_id = auth.uid());
 
 create policy "extraction own insert" on public.extraction_jobs
-  for insert with check (user_id = auth.uid());
+  for insert to authenticated with check (
+    user_id = auth.uid() and status = 'queued'
+    and provider is null and error_message is null
+    and started_at is null and finished_at is null
+    and exists (select 1 from public.evidence_items e
+      where e.id = evidence_id and e.user_id = auth.uid())
+  );
 
 create policy "assistant own all" on public.assistant_messages
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());

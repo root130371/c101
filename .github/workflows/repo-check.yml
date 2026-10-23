@@ -39,7 +39,7 @@ jobs:
           cache: npm
           cache-dependency-path: c101-mobile/package-lock.json
       - name: Billing regression tests
-        run: node --test tests/billing.test.mjs tests/usage.test.mjs tests/mobile-usage.test.mjs
+        run: node --test tests/billing.test.mjs tests/usage.test.mjs tests/mobile-usage.test.mjs tests/auth-redirect.test.mjs
       - name: Install mobile dependencies
         run: npm ci --prefix c101-mobile
       - name: Edge Function typecheck
@@ -78,6 +78,10 @@ jobs:
           -f supabase/upgrade_atomic_usage.sql
           -f tests/billing-db.sql
           -f tests/usage-db.sql
+          -f tests/evidence-job-db-setup.sql
+          -f supabase/upgrade_evidence_job_policy.sql
+          -f supabase/upgrade_evidence_job_policy.sql
+          -f tests/evidence-job-db.sql
 
       - uses: actions/setup-node@v4
         with:

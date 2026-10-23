@@ -47,7 +47,7 @@ Next steps, in order:
 1. Restore the existing Supabase project, verify its current status and inspect the deployed schema while preserving data.
 2. Apply `upgrade_billing_foundation.sql`, then `upgrade_revenuecat_sync.sql`; deploy the billing functions and updated AI functions after checking prerequisites.
 3. Configure the owner's RevenueCat, Google Play and Expo accounts, registered identifiers, entitlement `tenant_plus`, monthly product (proposed `tenant_plus_monthly`), public SDK keys and server-only secrets. Never request private keys in chat or put them in public Expo variables/Git.
-4. Replace existing check-then-increment usage accounting with atomic accounting before concurrent paid traffic. Current reconciliation is atomic; existing AI quota accounting is not.
+4. Atomic AI quota accounting was implemented and deployed on October23; complete device/store and paid-access acceptance before opening concurrent paid traffic.
 5. Build/install the native test app, upload an AAB to Play internal testing and configure license testers. Expo Go cannot validate native store billing.
 6. Test purchase, Restore/reinstall, delayed verification, expiration, refund, cancellation, grace, transfer, duplicate events, authentication and usage limits end to end before enabling paid rollout.
 
@@ -78,3 +78,15 @@ On October 19 the user requested saving this context, explaining these results o
 - Twelve new production-helper tests cover offline/exception/malformed data, zero-use success, period mixing and rollover, upgrade/expiry, unknown/loading plans and UTC/year boundaries. Prepared mobile code TypeScript check passed before applying. CI includes the new tests. No device/store acceptance is claimed. Prior local atomic quota changes are preserved.
 - Final validation in the actual checkout: all 32 billing/quota/mobile-usage tests passed, mobile and Edge Function TypeScript passed, and git diff whitespace checks passed. Database code was unchanged in this display step; prior isolated PostgreSQL concurrency/migration results remain the earlier validation, not a fresh live check.
 - Development remains local/uncommitted; deployment requires restoring Supabase and reviewing its existing schema, followed by the coordinated migration/AI deployment in docs/ATOMIC_USAGE.md.
+
+
+## 2026-10-23 Backend restored and deployed
+
+- User approved proceeding with restoration, deployment and source backup. Resumed the EXISTING gxqcacrtntnfnakitdaf project via Supabase restore API (no new project, no PITR rollback) and verified ACTIVE_HEALTHY. Existing user/data preserved.
+- Committed atomic quotas/mobile display as 98a893532f2253a38ba9badd7d05c5f54897d55e and pushed work/c101-billing-20261017. GitHub CI succeeded: https://github.com/root130371/c101/actions/runs/39974692139 . Main/Pages unchanged.
+- Read-only live schema preflight found billing tables absent. Saved existing deployed function sources under Pinebot ignored .tmp/c101-live-before-20261023, put both AI functions into maintenance and drained old workers. Applied billing foundation, RevenueCat reconciliation and atomic quota migrations. Discovered missing mobile extraction-job INSERT policy; added/tested upgrade_evidence_job_policy.sql restricting authenticated inserts to owned evidence and unprocessed queued jobs, and aligned initial schema.
+- Deployed ask-assistant v11, analyze-evidence v10, sync-store-billing v1 (all verify_jwt=true), revenuecat-webhook v1 (verify_jwt=false, mandatory handler secret when configured). scrape-rental-listing v2 unchanged. All ACTIVE. Billing server secrets remain absent; billing endpoints correctly return503 and grant no paid access.
+- LIVE smoke passed: unauthenticated401, disposable authenticated session, evidence PDF upload/metadata/owned queued job, forged completion blocked, client quota RPC blocked, saturated chat/evidence quotas402 before Gemini. Then one real Gemini chat and PDF analysis succeeded and each counted exactly one allowance. Test user/file/cascading rows removed; final original user count1, test evidence0, reservations0. No emails sent or store purchases made.
+- Auth Google provider is configured. Added c101://auth/callback to redirect allowlist, preserving existing entries. Fixed native callback rewriting and stale development-IP fallback; six new redirect tests passed. Google OAuth on a device still needs testing. No package/project IDs were invented.
+- All38 local JS/handler/mobile/redirect tests and mobile TypeScript passed; isolated PostgreSQL repeat-policy/ownership/forgery/anonymous checks passed. Full deployment evidence: docs/DEPLOYMENT_2026-10-23.md.
+- Next blockers are RevenueCat/Play/Expo owner accounts, registered package/project/product IDs, local/provider secrets and a native test build. Root/mobile env files are absent. Asked for setup state; no answer yet. Real payments and installed-device acceptance remain unverified.

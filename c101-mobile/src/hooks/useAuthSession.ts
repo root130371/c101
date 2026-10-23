@@ -4,25 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Linking, Platform } from "react-native";
 
 import { supabase } from "../lib/supabase";
+import { nativeAuthRedirect, nativeCallbackRedirect } from "./authRedirect";
 
 type AuthStatus = "loading" | "signed-in" | "signed-out";
 type ProfileRole = "admin" | "tenant" | "unknown";
 
-const nativeCallbackFallback = "exp://100.109.162.41:8086/--/auth/callback";
-
 function nativeExpoCallbackUrl() {
-  return process.env.EXPO_PUBLIC_NATIVE_AUTH_REDIRECT_URL || nativeCallbackFallback;
+  return nativeCallbackRedirect(process.env.EXPO_PUBLIC_NATIVE_AUTH_REDIRECT_URL);
 }
 
 function nativeBridgeRedirectUrl() {
-  const configuredUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL;
-  if (!configuredUrl) return ExpoLinking.createURL("auth/callback");
-
-  const url = new URL(configuredUrl);
-  url.pathname = "/auth/native-callback";
-  url.search = "";
-  url.hash = "";
-  return url.toString();
+  return nativeAuthRedirect(process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL, ExpoLinking.createURL("auth/callback"));
 }
 
 function authRedirectUrl() {
