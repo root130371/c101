@@ -1,10 +1,10 @@
 import { supabase } from "../lib/supabase";
+import { readUsageSnapshot, type UsageMetric, type UsageSnapshot } from "./billingUsage";
+export type { UsageMetric, UsageSnapshot } from "./billingUsage";
 
 export type PlanKey = "free" | "tenant_plus";
 
 export type BillingProcessor = "apple" | "google" | "iyzico" | "manual" | "paytr";
-
-export type UsageMetric = "chat_messages" | "contract_analyses" | "evidence_analyses";
 
 export type BillingPlan = {
   key: PlanKey;
@@ -17,14 +17,6 @@ export type BillingEntitlement = {
   plan: BillingPlan;
   status: "active" | "free" | "past_due" | "canceled" | "unknown";
   periodEnd?: string | null;
-};
-
-export type UsageCounter = {
-  limit: number;
-  metric: UsageMetric;
-  periodStart: string;
-  remaining: number;
-  used: number;
 };
 
 export type BillingUpgradeRequest = {
@@ -90,35 +82,17 @@ export async function loadBillingEntitlement(userId?: string): Promise<BillingEn
   };
 }
 
-export async function loadUsageCounters(userId?: string): Promise<UsageCounter[]> {
-  if (!userId) return [];
-
-  const periodStarts = [
-    dailyPeriodStart(),
-    monthlyPeriodStart(),
-  ];
-
-  const { data, error } = await supabase
-    .from("usage_counters")
-    .select("metric,period_start,used_count,limit_count")
-    .eq("user_id", userId)
-    .in("metric", ["chat_messages", "contract_analyses", "evidence_analyses"])
-    .in("period_start", periodStarts);
-
-  if (error) return [];
-
-  return ((data || []) as Array<{
-    limit_count: number;
-    metric: UsageMetric;
-    period_start: string;
-    used_count: number;
-  }>).map((row) => ({
-    limit: Number(row.limit_count || 0),
-    metric: row.metric,
-    periodStart: row.period_start,
-    remaining: Math.max(0, Number(row.limit_count || 0) - Number(row.used_count || 0)),
-    used: Number(row.used_count || 0),
-  }));
+export async function loadUsageCounters(userId?: string): Promise<UsageSnapshot> {
+  if (!userId) return { state: "unavailable", counters: [], observedAt: null };
+  return readUsageSnapshot(async ({ daily, monthly }) => {
+    const { data, error } = await supabase
+      .from("usage_counters")
+      .select("metric,period_start,used_count")
+      .eq("user_id", userId)
+      .in("metric", ["chat_messages", "contract_analyses", "evidence_analyses"])
+      .in("period_start", [daily, monthly]);
+    return { data, error };
+  });
 }
 
 export async function loadLatestUpgradeRequest(userId?: string): Promise<BillingUpgradeRequest | null> {
@@ -187,15 +161,6 @@ function isBillingProcessor(value: unknown): value is BillingProcessor {
 
 function isUpgradeRequestStatus(value: unknown): value is BillingUpgradeRequest["status"] {
   return value === "approved" || value === "canceled" || value === "pending" || value === "rejected";
-}
-
-function dailyPeriodStart() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function monthlyPeriodStart() {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
 export function planName(plan: BillingPlan, language: "en" | "tr") {

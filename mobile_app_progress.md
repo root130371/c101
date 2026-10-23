@@ -5865,3 +5865,15 @@ Next stages:
 - Restricted GitHub Pages artifacts to actual website assets. Added billing and mobile CI checks plus PostgreSQL migration/permissions regression checks.
 - Cloud inspection: project gxqcacrtntnfnakitdaf reports INACTIVE. Existing deployed functions are analyze-evidence, ask-assistant and scrape-rental-listing. RevenueCat secrets and billing functions are absent. No new cloud changes or real purchases have been performed.
 - Remaining: restore project, inspect deployed schema, apply billing SQL, configure RevenueCat/Play/Expo, deploy functions, build native test app, and complete purchase/restore/expiry/transfer/usage acceptance tests. Existing check-then-increment usage accounting must become atomic before concurrent paid traffic. Details: docs/BILLING_SETUP.md.
+
+
+## 2026-10-23 - Atomic AI quota reservations
+
+Replaced both AI endpoints' check-then-increment usage code with service-only PostgreSQL reservations, row-locked admission and idempotent commit/release. Existing limits, period rules and counters are preserved. Handled failures refund; crashes/unknown settlement retain quota pending reconciliation. No automatic expiry or HTTP retry deduplication. Evidence error updates require verified ownership.
+
+Validation: 20 billing/quota/handler tests, one 40-session database concurrency test, repeat migrations/permissions/expiry/settlement SQL checks and Edge Function typecheck passed. Added CI coverage. Migration and coordinated deployment instructions: docs/ATOMIC_USAGE.md. Implementation is local; live infrastructure/store setup and deployment remain pending.
+
+
+## 2026-10-23 - Accurate account usage and outage recovery
+
+The account screen now distinguishes unavailable usage from zero use, filters counters by each metric's UTC period, and displays verified plan limits after upgrades/expiry. Added refresh controls, recoverable account loading and account-identity isolation. Unknown plans no longer appear as active Free access. Twelve regression tests cover data failures and period/subscription transitions; mobile TypeScript passed. Supabase still reports INACTIVE; no deployment or device/store acceptance performed.

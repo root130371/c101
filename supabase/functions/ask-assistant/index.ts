@@ -1,3 +1,5 @@
+import { withUsageReservation, UsageLimitError } from "../_shared/usage.ts";
+
 type AskAssistantRequest = {
   question?: string;
   language?: "tr" | "en";
@@ -9,22 +11,6 @@ type AssistantMessage = {
   role: "user" | "assistant" | "system";
   content: string;
   created_at: string;
-};
-
-type PlanKey = "free" | "tenant_plus";
-type UsageMetric = "chat_messages" | "contract_analyses" | "evidence_analyses";
-
-const PLAN_LIMITS: Record<PlanKey, Record<UsageMetric, number>> = {
-  free: {
-    chat_messages: 5,
-    contract_analyses: 1,
-    evidence_analyses: 2
-  },
-  tenant_plus: {
-    chat_messages: 50,
-    contract_analyses: 10,
-    evidence_analyses: 25
-  }
 };
 
 const corsHeaders = {
@@ -63,56 +49,45 @@ Deno.serve(async (request) => {
   const user = await getUser(supabaseUrl, anonKey, authHeader);
   if (!user?.id) return json({ error: "Authentication required" }, 401);
 
-  const usage = await checkUsageLimit(supabaseUrl, serviceRoleKey, user.id, "chat_messages");
-  if (!usage.allowed) {
-    return json({
-      error: "Plan limit reached.",
-      error_code: "usage_limit_reached",
-      metric: "chat_messages",
-      plan: usage.plan,
-      limit: usage.limit,
-      used: usage.used,
-      recovery: "Upgrade to Tenant Plus or wait for the daily chat counter to reset."
-    }, 402);
-  }
-
   const language = body.language === "en" ? "en" : "tr";
   const propertyId = typeof body.property_id === "string" && body.property_id ? body.property_id : null;
 
-  const [evidence, listings, history] = await Promise.all([
-    fetchEvidenceSummaries(supabaseUrl, serviceRoleKey, user.id),
-    fetchRentListings(supabaseUrl, serviceRoleKey),
-    fetchRecentMessages(supabaseUrl, serviceRoleKey, user.id)
-  ]);
-
-  await insertAssistantMessage(supabaseUrl, serviceRoleKey, {
-    user_id: user.id,
-    property_id: propertyId,
-    role: "user",
-    content: question
-  });
-
   try {
-    const answer = await askGemini(apiKey, model, {
-      question,
-      language,
-      case_context: body.case_context || {},
-      evidence,
-      listings,
-      history
+    const answer = await withUsageReservation(supabaseUrl, serviceRoleKey, user.id, "chat_messages", async () => {
+      const [evidence, listings, history] = await Promise.all([
+        fetchEvidenceSummaries(supabaseUrl, serviceRoleKey, user.id),
+        fetchRentListings(supabaseUrl, serviceRoleKey),
+        fetchRecentMessages(supabaseUrl, serviceRoleKey, user.id)
+      ]);
+
+      await insertAssistantMessage(supabaseUrl, serviceRoleKey, {
+        user_id: user.id,
+        property_id: propertyId,
+        role: "user",
+        content: question
+      });
+
+      const answer = await askGemini(apiKey, model, {
+        question,
+        language,
+        case_context: body.case_context || {},
+        evidence,
+        listings,
+        history
+      });
+
+      await insertAssistantMessage(supabaseUrl, serviceRoleKey, {
+        user_id: user.id,
+        property_id: propertyId,
+        role: "assistant",
+        content: answer.answer_text
+      });
+
+      return answer;
     });
-
-    await insertAssistantMessage(supabaseUrl, serviceRoleKey, {
-      user_id: user.id,
-      property_id: propertyId,
-      role: "assistant",
-      content: answer.answer_text
-    });
-
-    await incrementUsage(supabaseUrl, serviceRoleKey, user.id, "chat_messages", usage);
-
     return json({ answer });
   } catch (error) {
+    if (error instanceof UsageLimitError) return json(error.payload(), 402);
     const appError = normalizeAssistantError(error);
     return json(appError, appError.status);
   }
@@ -230,80 +205,6 @@ function serviceHeaders(serviceRoleKey: string, jsonBody = false) {
     authorization: `Bearer ${serviceRoleKey}`,
     ...(jsonBody ? { "content-type": "application/json", prefer: "return=minimal" } : {})
   };
-}
-
-function usageHeaders(serviceRoleKey: string) {
-  return {
-    apikey: serviceRoleKey,
-    authorization: `Bearer ${serviceRoleKey}`,
-    "content-type": "application/json",
-    prefer: "resolution=merge-duplicates,return=minimal"
-  };
-}
-
-async function checkUsageLimit(
-  supabaseUrl: string,
-  serviceRoleKey: string,
-  userId: string,
-  metric: UsageMetric
-) {
-  const plan = await fetchActivePlan(supabaseUrl, serviceRoleKey, userId);
-  const limit = PLAN_LIMITS[plan][metric];
-  const periodStart = usagePeriodStart(metric);
-  const url = `${supabaseUrl}/rest/v1/usage_counters?user_id=eq.${encodeURIComponent(userId)}&period_start=eq.${periodStart}&metric=eq.${metric}&select=used_count,limit_count`;
-  const response = await fetch(url, { headers: serviceHeaders(serviceRoleKey) });
-  if (!response.ok) throw new Error(`Usage lookup failed: ${await response.text()}`);
-  const rows = await response.json();
-  const used = Number(Array.isArray(rows) && rows[0]?.used_count ? rows[0].used_count : 0);
-
-  return {
-    allowed: used < limit,
-    limit,
-    metric,
-    periodStart,
-    plan,
-    used
-  };
-}
-
-async function incrementUsage(
-  supabaseUrl: string,
-  serviceRoleKey: string,
-  userId: string,
-  metric: UsageMetric,
-  usage: Awaited<ReturnType<typeof checkUsageLimit>>
-) {
-  const payload = [{
-    user_id: userId,
-    period_start: usage.periodStart,
-    metric,
-    used_count: usage.used + 1,
-    limit_count: usage.limit,
-    updated_at: new Date().toISOString()
-  }];
-  const response = await fetch(`${supabaseUrl}/rest/v1/usage_counters?on_conflict=user_id,period_start,metric`, {
-    method: "POST",
-    headers: usageHeaders(serviceRoleKey),
-    body: JSON.stringify(payload)
-  });
-  if (!response.ok) throw new Error(`Usage update failed: ${await response.text()}`);
-}
-
-async function fetchActivePlan(supabaseUrl: string, serviceRoleKey: string, userId: string): Promise<PlanKey> {
-  const url = `${supabaseUrl}/rest/v1/billing_subscriptions?user_id=eq.${encodeURIComponent(userId)}&plan_key=eq.tenant_plus&status=in.(active,trialing)&or=(current_period_end.is.null,current_period_end.gt.${encodeURIComponent(new Date().toISOString())})&select=plan_key,current_period_end&order=created_at.desc&limit=1`;
-  const response = await fetch(url, { headers: serviceHeaders(serviceRoleKey) });
-  if (!response.ok) throw new Error(`Billing lookup failed: ${await response.text()}`);
-  const rows = await response.json();
-  const plan = Array.isArray(rows) && rows[0]?.plan_key === "tenant_plus" ? "tenant_plus" : "free";
-  return plan;
-}
-
-function usagePeriodStart(metric: UsageMetric) {
-  const now = new Date();
-  if (metric === "chat_messages") {
-    return now.toISOString().slice(0, 10);
-  }
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
 function extractGeminiText(result: Record<string, unknown>) {

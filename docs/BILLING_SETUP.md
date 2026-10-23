@@ -9,7 +9,7 @@ Supabase project `gxqcacrtntnfnakitdaf` reported `INACTIVE` on October 17. Its d
 ## Database and function deployment
 
 1. Restore the existing project in the Supabase dashboard. Preserve its data and settings.
-2. Run `supabase/upgrade_billing_foundation.sql`, then `supabase/upgrade_revenuecat_sync.sql` in the SQL editor. Both are safe to rerun. Do not rerun the full initial schema over an existing database.
+2. Run `supabase/upgrade_billing_foundation.sql`, then `supabase/upgrade_revenuecat_sync.sql` in the SQL editor. Then apply `supabase/upgrade_atomic_usage.sql` before deploying the updated AI functions. All three are safe to rerun. Do not rerun the full initial schema over an existing database.
 3. Set Edge Function secrets using the dashboard or an ignored env file: `REVENUECAT_SECRET_API_KEY` (server secret key supporting API v1), `REVENUECAT_ENTITLEMENT_ID=tenant_plus`, and `REVENUECAT_WEBHOOK_AUTHORIZATION` (a long random value, including the `Bearer ` prefix). Never use `EXPO_PUBLIC_` for server secrets. For isolated sandbox testers only, set `REVENUECAT_ALLOW_SANDBOX=true`; keep it false/unset for production. Do not reuse production accounts for sandbox purchases.
 4. From the repository root, deploy:
 
@@ -31,13 +31,13 @@ npx supabase functions deploy analyze-evidence --project-ref gxqcacrtntnfnakitda
 
 ## Acceptance checks before enabling paid access
 
-- Run `node --test tests/billing.test.mjs` with Node 24 and `npm run typecheck --prefix c101-mobile`.
+- Run `node --test tests/billing.test.mjs tests/usage.test.mjs` with Node 24 and `npm run typecheck --prefix c101-mobile`.
 - Verify missing/wrong webhook authorization is rejected and a RevenueCat test event returns success.
 - Purchase on a license tester: one provider row appears, Plus limits become available, and Restore recovers access after reinstall.
 - Delay the verification endpoint: the app reports pending verification and directs the user to Restore, without prompting another purchase or creating a manual request for a completed payment.
 - Cancel auto-renew: access lasts through the paid period. Test expiration, refund, billing grace, and transfer to a second Supabase account.
 - Retry identical events and submit stale snapshots: no duplicate provider subscriptions or stale grants. Manual access remains intact.
-- Test the daily/monthly usage limits and authentication on the deployed AI functions. Existing usage accounting still uses check-then-increment and needs atomic reservation before concurrent paid traffic is opened.
+- Test the daily/monthly usage limits and authentication on the deployed AI functions. Atomic quota reservations now serialize admission; see [ATOMIC_USAGE.md](ATOMIC_USAGE.md) for migration, deployment coordination and interrupted-request reconciliation.
 
 ## References
 

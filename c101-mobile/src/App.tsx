@@ -66,7 +66,7 @@ import {
   type BillingEntitlement,
   type BillingPlan,
   type BillingUpgradeRequest,
-  type UsageCounter,
+  type UsageSnapshot,
   type UsageMetric,
 } from "./services/billing";
 import {
@@ -75,6 +75,8 @@ import {
   restoreTenantPlus,
   type StoreBillingStatus,
 } from "./services/storeBilling";
+
+import { usageDisplay } from "./services/billingUsage";
 
 type TabKey = "home" | "calc" | "rights" | "inspection" | "chat" | "account";
 
@@ -772,7 +774,7 @@ function ScreenContent({
   }
 
   return (
-    <AccountPanel auth={auth} language={language} onLanguageChange={onLanguageChange} />
+    <AccountPanel key={auth.user?.id || "signed-out"} auth={auth} language={language} onLanguageChange={onLanguageChange} />
   );
 }
 
@@ -2827,12 +2829,13 @@ function AccountPanel({
   const [busy, setBusy] = useState(false);
   const [billing, setBilling] = useState<BillingEntitlement>({
     plan: billingPlans.free,
-    status: "free",
+    status: "unknown",
   });
   const [billingMessage, setBillingMessage] = useState("");
-  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(true);
   const [upgradeRequest, setUpgradeRequest] = useState<BillingUpgradeRequest | null>(null);
-  const [usageCounters, setUsageCounters] = useState<UsageCounter[]>([]);
+  const [usageSnapshot, setUsageSnapshot] = useState<UsageSnapshot>({ state: "loading", counters: [], observedAt: null });
+  const [billingRefresh, setBillingRefresh] = useState(0);
   const [storeBilling, setStoreBilling] = useState<StoreBillingStatus>({
     active: false,
     available: false,
@@ -2848,23 +2851,26 @@ function AccountPanel({
       if (!auth.user?.id) {
         setBilling({ plan: billingPlans.free, status: "free" });
         setUpgradeRequest(null);
-        setUsageCounters([]);
+        setUsageSnapshot({ state: "unavailable", counters: [], observedAt: null });
         setStoreBilling({ active: false, available: false, platform: "unsupported" });
+        setBillingLoading(false);
         return;
       }
 
       setBillingLoading(true);
-      const [entitlement, usage, latestRequest, storeStatus] = await Promise.all([
+      setBilling({ plan: billingPlans.free, status: "unknown" });
+      setUsageSnapshot({ state: "loading", counters: [], observedAt: null });
+      const [entitlement, usage, latestRequest, storeStatus] = await Promise.allSettled([
         loadBillingEntitlement(auth.user.id),
         loadUsageCounters(auth.user.id),
         loadLatestUpgradeRequest(auth.user.id),
         loadStoreBillingStatus(auth.user.id),
       ]);
       if (!cancelled) {
-        setBilling(entitlement);
-        setUsageCounters(usage);
-        setUpgradeRequest(latestRequest);
-        setStoreBilling(storeStatus);
+        setBilling(entitlement.status === "fulfilled" ? entitlement.value : { plan: billingPlans.free, status: "unknown" });
+        setUsageSnapshot(usage.status === "fulfilled" ? usage.value : { state: "unavailable", counters: [], observedAt: null });
+        setUpgradeRequest(latestRequest.status === "fulfilled" ? latestRequest.value : null);
+        setStoreBilling(storeStatus.status === "fulfilled" ? storeStatus.value : { active: false, available: false, platform: "unsupported" });
         setBillingLoading(false);
       }
     }
@@ -2874,7 +2880,7 @@ function AccountPanel({
     return () => {
       cancelled = true;
     };
-  }, [auth.user?.id]);
+  }, [auth.user?.id, billingRefresh]);
 
   async function handleGoogleSignIn() {
     setBusy(true);
@@ -2893,13 +2899,13 @@ function AccountPanel({
       const purchase = await purchaseTenantPlus(auth.user.id);
       if (purchase.active) {
         setBilling(await loadBillingEntitlement(auth.user.id));
-        setUsageCounters(await loadUsageCounters(auth.user.id));
+        setUsageSnapshot(await loadUsageCounters(auth.user.id));
         setStoreBilling((current) => ({ ...current, active: true }));
         setBillingMessage(
           text(
             language,
             "Purchase verified. Tenant Plus access is ready.",
-            "Mağaza satın alımı başarılı. Sonraki backend senkronizasyonu bu satın alımı Supabase limitlerine bağlayacak.",
+            "Satın alma doğrulandı. Kiracı Plus erişiminiz hazır.",
           ),
         );
         return;
@@ -2928,6 +2934,7 @@ function AccountPanel({
       setBillingMessage(error instanceof Error ? error.message : text(language, "Upgrade request failed.", "Yükseltme talebi başarısız oldu."));
     } finally {
       setBillingLoading(false);
+      setBillingRefresh(value => value + 1);
     }
   }
 
@@ -2938,17 +2945,18 @@ function AccountPanel({
     try {
       const restore = await restoreTenantPlus(auth.user.id);
       setBilling(await loadBillingEntitlement(auth.user.id));
-      setUsageCounters(await loadUsageCounters(auth.user.id));
+      setUsageSnapshot(await loadUsageCounters(auth.user.id));
       setStoreBilling((current) => ({ ...current, active: restore.active }));
       setBillingMessage(
         restore.active
-          ? text(language, "Purchase restored and access verified.", "Mağaza satın alımı geri yüklendi. Backend yetki senkronizasyonu sonraki aşama.")
+          ? text(language, "Purchase restored and access verified.", "Satın alma geri yüklendi ve erişim doğrulandı.")
           : text(language, restore.message || "No active store purchase was found.", restore.message || "Aktif mağaza satın alımı bulunamadı."),
       );
     } catch (error) {
       setBillingMessage(error instanceof Error ? error.message : text(language, "Restore failed.", "Geri yükleme başarısız oldu."));
     } finally {
       setBillingLoading(false);
+      setBillingRefresh(value => value + 1);
     }
   }
 
@@ -3005,7 +3013,8 @@ function AccountPanel({
           onRestorePress={handleRestorePress}
           storeBilling={storeBilling}
           upgradeRequest={upgradeRequest}
-          usageCounters={usageCounters}
+          usageSnapshot={usageSnapshot}
+          onRefreshPress={() => setBillingRefresh(value => value + 1)}
         />
         {auth.profileRole === "admin" ? <RentalImportAdminPanel language={language} /> : null}
         <AccountInfoPanel language={language} />
@@ -3062,7 +3071,8 @@ function BillingPanel({
   onUpgradePress,
   storeBilling,
   upgradeRequest,
-  usageCounters,
+  usageSnapshot,
+  onRefreshPress,
 }: {
   entitlement: BillingEntitlement;
   language: AppLanguage;
@@ -3072,7 +3082,8 @@ function BillingPanel({
   onUpgradePress: () => void;
   storeBilling: StoreBillingStatus;
   upgradeRequest: BillingUpgradeRequest | null;
-  usageCounters: UsageCounter[];
+  usageSnapshot: UsageSnapshot;
+  onRefreshPress: () => void;
 }) {
   const requestIsPending = upgradeRequest?.status === "pending";
   return (
@@ -3093,9 +3104,11 @@ function BillingPanel({
 
       <View style={styles.billingStatusCard}>
         <Text style={styles.infoLabel}>{text(language, "Current plan", "Mevcut plan")}</Text>
-        <Text style={styles.billingPlanName}>{planName(entitlement.plan, language)}</Text>
+        <Text style={styles.billingPlanName}>{loading ? text(language, "Checking plan...", "Plan kontrol ediliyor...") : entitlement.status === "unknown" ? text(language, "Plan unavailable", "Plan bilgisi alınamadı") : planName(entitlement.plan, language)}</Text>
         <Text style={styles.infoText}>
-          {entitlement.status === "active"
+          {loading ? text(language, "Checking account limits...", "Hesap limitleri kontrol ediliyor...")
+            : entitlement.status === "unknown" ? text(language, "Refresh to check your subscription.", "Aboneliğinizi kontrol etmek için yenileyin.")
+            : entitlement.status === "active"
             ? text(language, "Active subscription", "Aktif abonelik")
             : entitlement.status === "past_due"
               ? text(language, "Payment needs attention", "Ödeme kontrol edilmeli")
@@ -3120,19 +3133,21 @@ function BillingPanel({
       </View>
 
       <UsageCounterList
-        counters={usageCounters}
+        snapshot={usageSnapshot}
+        loading={loading}
         entitlement={entitlement}
         language={language}
       />
 
       <View style={styles.planGrid}>
         <PlanCard
-          active={entitlement.plan.key === "free"}
+          active={!loading && entitlement.status !== "unknown" && entitlement.plan.key === "free"}
           language={language}
           plan={billingPlans.free}
         />
         <PlanCard
-          active={entitlement.plan.key === "tenant_plus"}
+          active={!loading && entitlement.status !== "unknown" && entitlement.plan.key === "tenant_plus"}
+          disabled={loading || entitlement.status === "unknown"}
           language={language}
           onPress={onUpgradePress}
           pending={requestIsPending}
@@ -3141,6 +3156,9 @@ function BillingPanel({
           storePrice={storeBilling.price}
         />
       </View>
+      <Pressable disabled={loading} onPress={onRefreshPress} style={[styles.secondaryButton, loading && styles.disabledButton]}>
+        <Text style={styles.secondaryButtonText}>{text(language, "Refresh plan and usage", "Plan ve kullanımı yenile")}</Text>
+      </Pressable>
       <Pressable disabled={loading} onPress={onRestorePress} style={[styles.secondaryButton, loading && styles.disabledButton]}>
         <Text style={styles.secondaryButtonText}>{text(language, "Restore store purchase", "Mağaza satın alımını geri yükle")}</Text>
       </Pressable>
@@ -3157,6 +3175,7 @@ function PlanCard({
   plan,
   storeAvailable,
   storePrice,
+  disabled,
 }: {
   active: boolean;
   language: AppLanguage;
@@ -3165,6 +3184,7 @@ function PlanCard({
   plan: BillingPlan;
   storeAvailable?: boolean;
   storePrice?: string;
+  disabled?: boolean;
 }) {
   const metrics: UsageMetric[] = ["chat_messages", "contract_analyses", "evidence_analyses"];
   return (
@@ -3186,7 +3206,7 @@ function PlanCard({
         </View>
       ))}
       {onPress ? (
-        <Pressable disabled={pending} onPress={onPress} style={[styles.primaryButton, pending && styles.disabledButton]}>
+        <Pressable disabled={pending || disabled} onPress={onPress} style={[styles.primaryButton, (pending || disabled) && styles.disabledButton]}>
           <Text style={styles.primaryButtonText}>
             {pending
               ? text(language, "Request pending", "Talep bekliyor")
@@ -3202,34 +3222,28 @@ function PlanCard({
   );
 }
 
-function UsageCounterList({
-  counters,
-  entitlement,
-  language,
-}: {
-  counters: UsageCounter[];
+function UsageCounterList({ snapshot, entitlement, language, loading }: {
+  snapshot: UsageSnapshot;
   entitlement: BillingEntitlement;
   language: AppLanguage;
+  loading: boolean;
 }) {
   const metrics: UsageMetric[] = ["chat_messages", "contract_analyses", "evidence_analyses"];
-  const countersByMetric = new Map(counters.map((counter) => [counter.metric, counter]));
-
   return (
     <View style={styles.infoList}>
       {metrics.map((metric) => {
-        const counter = countersByMetric.get(metric);
-        const limit = counter?.limit ?? entitlement.plan.limits[metric];
-        const used = counter?.used ?? 0;
-        const remaining = Math.max(0, limit - used);
+        const counter = usageDisplay(snapshot, metric, entitlement.status === "unknown" ? null : entitlement.plan.limits[metric]);
         return (
           <View key={metric} style={styles.infoRow}>
             <Text style={styles.infoLabel}>{metricLabel(metric, language)}</Text>
             <Text style={styles.infoText}>
-              {text(
-                language,
-                `${used} used, ${remaining} remaining from ${limit}`,
-                `${limit} limitin ${used} tanesi kullanıldı, ${remaining} kaldı`,
-              )}
+              {loading || snapshot.state === "loading"
+                ? text(language, "Checking usage...", "Kullanım kontrol ediliyor...")
+                : counter
+                  ? text(language,
+                    `${counter.used} used, ${counter.remaining} remaining from ${counter.limit}`,
+                    `${counter.limit} limitin ${counter.used} tanesi kullanıldı, ${counter.remaining} kaldı`)
+                  : text(language, "Usage unavailable. Refresh to retry.", "Kullanım bilgisi alınamadı. Yenileyerek tekrar deneyin.")}
             </Text>
           </View>
         );

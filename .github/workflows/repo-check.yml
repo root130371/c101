@@ -39,9 +39,11 @@ jobs:
           cache: npm
           cache-dependency-path: c101-mobile/package-lock.json
       - name: Billing regression tests
-        run: node --test tests/billing.test.mjs
+        run: node --test tests/billing.test.mjs tests/usage.test.mjs tests/mobile-usage.test.mjs
       - name: Install mobile dependencies
         run: npm ci --prefix c101-mobile
+      - name: Edge Function typecheck
+        run: node c101-mobile/node_modules/typescript/bin/tsc -p supabase/functions/tsconfig.json
       - name: Mobile typecheck
         run: npm run typecheck --prefix c101-mobile
 
@@ -70,6 +72,19 @@ jobs:
           -f tests/billing-db-setup.sql
           -f supabase/upgrade_billing_foundation.sql
           -f supabase/upgrade_revenuecat_sync.sql
+          -f supabase/upgrade_atomic_usage.sql
           -f supabase/upgrade_billing_foundation.sql
           -f supabase/upgrade_revenuecat_sync.sql
+          -f supabase/upgrade_atomic_usage.sql
           -f tests/billing-db.sql
+          -f tests/usage-db.sql
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Concurrent quota admission and release
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          C101_USAGE_DB_TEST: "1"
+        run: node --test tests/usage-concurrency.test.mjs
